@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Plataforma Biomédica · Intelmedica</title>
+<meta name="theme-color" content="#0f5f6b">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{--pri:#0f5f6b;--pri2:#e3f1f3;--bg:#f4f6f8;--card:#fff;--tx:#1d2733;--mu:#667585;--bd:#dde3e9;
+--rojo:#c0392b;--rojo2:#fdecea;--nar:#d35400;--nar2:#fdf0e6;--ama:#9a7b00;--ama2:#fdf7dc;--ver:#1e8449;--ver2:#e8f6ee;--gr:#6b7785;--gr2:#eef1f4}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);font-size:15px}
+header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20}
+header h1{font-size:17px;margin:0;flex:1;font-weight:600}
+header small{opacity:.8;font-weight:400;display:block;font-size:12px}
+#busy{width:18px;height:18px;border:2px solid #ffffff55;border-top-color:#fff;border-radius:50%;animation:sp .8s linear infinite;display:none}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hbtn{background:#ffffff22;border:0;color:#fff;border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer}
+nav{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--bd);padding:6px 10px;position:sticky;top:52px;z-index:19}
+nav button{flex:1;border:0;background:none;padding:8px 6px;border-radius:8px;color:var(--mu);font-size:14px;cursor:pointer}
+nav button.on{background:var(--pri2);color:var(--pri);font-weight:600}
+main{max-width:1050px;margin:0 auto;padding:16px 16px 90px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 12px}
+.card h3{font-size:15px;margin:0 0 8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.ghost{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn.dan{background:#fff;color:var(--rojo);border:1px solid var(--rojo)}
+.btn:disabled{opacity:.5}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:12px}
+.kpi b{font-size:24px;display:block}
+.kpi span{color:var(--mu);font-size:13px}
+.kpi.r b{color:var(--rojo)}.kpi.n b{color:var(--nar)}.kpi.a b{color:var(--ama)}
+.chip{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.chip.rojo{background:var(--rojo2);color:var(--rojo)}.chip.naranja{background:var(--nar2);color:var(--nar)}
+.chip.amarillo{background:var(--ama2);color:var(--ama)}.chip.verde{background:var(--ver2);color:var(--ver)}.chip.gris{background:var(--gr2);color:var(--gr)}
+.filt button{border:1px solid var(--bd);background:#fff;border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--mu)}
+.filt button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.list{display:flex;flex-direction:column}
+.item{display:flex;gap:10px;align-items:center;padding:11px 4px;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+.item:last-child{border-bottom:0}
+.item .main{flex:1;min-width:200px}
+.item .t{font-weight:600}
+.item .s{color:var(--mu);font-size:13px;margin-top:2px}
+.clk{cursor:pointer}.clk:hover{background:#f8fafb}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.cli-card{cursor:pointer;margin:0}
+.cli-card:hover{border-color:var(--pri)}
+.muted{color:var(--mu)}
+.empty{color:var(--mu);text-align:center;padding:20px}
+.banner{border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.banner.w{background:var(--nar2);color:#7a3500}.banner.i{background:var(--pri2);color:var(--pri)}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;font-size:15px;font-family:inherit;background:#fff;color:var(--tx)}
+textarea{min-height:80px;resize:vertical}
+label{display:block;font-size:13px;color:var(--mu);margin-bottom:10px}
+label input,label select,label textarea{margin-top:4px}
+.chk{display:flex;gap:8px;align-items:center;color:var(--tx);font-size:14px}
+.chk input{width:auto;margin:0}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px 16px;font-size:14px}
+.info div span{display:block;color:var(--mu);font-size:12px}
+.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:30px 12px}
+.modal.hidden{display:none}
+.modal-box{background:#fff;border-radius:14px;width:100%;max-width:640px;padding:18px}
+.modal-box h2{margin:0 0 14px;font-size:17px;display:flex;align-items:center}
+.x{margin-left:auto;background:none;border:0;font-size:22px;cursor:pointer;color:var(--mu)}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;transition:.3s;pointer-events:none;z-index:60;max-width:90%}
+#toast.on{opacity:1}#toast.err{background:var(--rojo)}
+.crumbs{font-size:13px;margin:10px 0;color:var(--mu)}
+.crumbs a{color:var(--pri);cursor:pointer}
+.ic{font-size:20px;width:26px;text-align:center}
+a{color:var(--pri)}
+details summary{cursor:pointer;color:var(--pri);font-size:14px}
+details ol{font-size:14px;line-height:1.6;padding-left:20px}
+code{background:var(--gr2);padding:1px 5px;border-radius:4px;font-size:13px}
+@media(max-width:640px){
+ nav{position:fixed;bottom:0;top:auto;left:0;right:0;border-top:1px solid var(--bd);border-bottom:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+ nav button{font-size:12px;padding:6px 2px}
+ header h1{font-size:15px}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>Plataforma Biomédica<small>INTELMEDICA · Gestión de mantenimiento</small></h1>
+ <div id="busy"></div>
+ <button class="hbtn" data-a="refrescar" title="Actualizar datos">⟳</button>
+ <button class="hbtn" data-a="abrirReportes" title="App de reportes">📝 Reportes</button>
+</header>
+<nav id="nav">
+ <button data-a="go" data-id="inicio">📊 Inicio</button>
+ <button data-a="go" data-id="clientes">🏥 Clientes</button>
+ <button data-a="go" data-id="manuales">📚 Manuales</button>
+ <button data-a="go" data-id="config">⚙️ Ajustes</button>
+</nav>
+<main id="app"></main>
+<div id="modal" class="modal hidden"><div class="modal-box" id="mbox"></div></div>
+<div id="toast"></div>
+<datalist id="tipos"></datalist>
+
+<script>
+/* ================= utilidades ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const dq=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+function isoLocal(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const hoy=()=>isoLocal(new Date());
+function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function addMonths(s,n){const d=parseD(s),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+Number(n||0));const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return isoLocal(d)}
+function addDays(s,n){const d=parseD(s);d.setDate(d.getDate()+n);return isoLocal(d)}
+function diasHasta(s){return Math.round((parseD(s)-parseD(hoy()))/864e5)}
+function fmtD(s){if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(s))return s||'—';return parseD(s).toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'})}
+function normDate(s){s=String(s||'').trim();let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;return s}
+function loadLS(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function saveLS(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let tt;function toast(m,cls=''){const t=$('#toast');t.textContent=m;t.className='on '+cls;clearTimeout(tt);tt=setTimeout(()=>t.className='',3500)}
+let busyN=0;function setBusy(b){busyN+=b?1:-1;$('#busy').style.display=busyN>0?'block':'none'}
+
+const TIPOS=['Monitor de signos vitales','Desfibrilador','Electrocardiógrafo','Bomba de infusión','Pulsioxímetro','Tensiómetro','Autoclave','Lámpara cielítica','Mesa de cirugía','Unidad electroquirúrgica','Ventilador mecánico','Máquina de anestesia','Incubadora','Lámpara de calor radiante','Succionador','Nebulizador','Concentrador de oxígeno','Doppler fetal','Monitor fetal','Ecógrafo','Glucómetro','Báscula','Centrífuga','Microscopio','Equipo de órganos','Negatoscopio','Flujómetro','Laringoscopio'];
+$('#tipos').innerHTML=TIPOS.map(t=>`<option value="${t}">`).join('');
+
+/* ================= configuración ================= */
+const CFG_KEY='pbi_cfg';
+const DEF={clientId:'',sheetId:'',manualesFolder:'',mttoFolder:'1-KMSW8rkSDPJ3O7eMiUqzEVUMRzqMUYs',calendarId:'primary',reportUrl:'https://biotronica.github.io/Reportes-biomedicos/',responsables:'Ramiro, Evelyn',aviso:30,modo:''};
+let cfg=Object.assign({},DEF,loadLS(CFG_KEY)||{});
+const responsables=()=>cfg.responsables.split(',').map(s=>s.trim()).filter(Boolean);
+const demo=()=>cfg.modo==='demo';
+
+/* ================= modelo de datos ================= */
+const SCHEMA={
+ clientes:{sheet:'Clientes',cols:['id','nombre','nit','ciudad','direccion','contacto','telefono','email','notas']},
+ equipos:{sheet:'Equipos',cols:['id','clienteId','tipo','marca','modelo','serie','inventario','ubicacion','periodicidad','ultimo','proximo','calEventId','estado']},
+ mttos:{sheet:'Mantenimientos',cols:['id','equipoId','clienteId','fecha','tipo','responsables','descripcion','reporteUrl','proximo']}
+};
+const DATECOLS=['ultimo','proximo','fecha'];
+let DB={clientes:[],equipos:[],mttos:[]};
+let sheetIds={};
+const cliente=id=>DB.clientes.find(c=>c.id===id);
+const equipo=id=>DB.equipos.find(e=>e.id===id);
+const eqNombre=e=>e?[e.tipo,e.marca,e.modelo].filter(Boolean).join(' · '):'(equipo eliminado)';
+
+/* ================= Google: autenticación ================= */
+const SCOPES='https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events';
+class AuthError extends Error{constructor(){super('La sesión de Google expiró')}}
+let token=null,tokenExp=0,tokenClient=null,pend=null;
+try{const t=JSON.parse(sessionStorage.getItem('pbi_tok'));if(t&&t.tokenExp>Date.now()){token=t.token;tokenExp=t.tokenExp}}catch(e){}
+const conectado=()=>!!token&&Date.now()<tokenExp;
+function getToken(){
+ return new Promise((res,rej)=>{
+  if(!window.google?.accounts?.oauth2)return rej(new Error('No cargó el inicio de sesión de Google. Revisa tu conexión.'));
+  if(!cfg.clientId)return rej(new Error('Falta el Client ID de Google en Ajustes.'));
+  if(!tokenClient)tokenClient=google.accounts.oauth2.initTokenClient({client_id:cfg.clientId,scope:SCOPES,callback:r=>{
+   if(r.error){pend?.rej(new Error('Google: '+r.error))}
+   else{token=r.access_token;tokenExp=Date.now()+(r.expires_in-60)*1000;sessionStorage.setItem('pbi_tok',JSON.stringify({token,tokenExp}));pend?.res(token)}
+   pend=null}});
+  pend={res,rej};tokenClient.requestAccessToken();
+ });
+}
+async function api(url,opt={}){
+ if(!conectado())throw new AuthError();
+ const r=await fetch(url,{...opt,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(opt.headers||{})}});
+ if(r.status===401){token=null;throw new AuthError()}
+ if(!r.ok){const t=await r.text();let m=t;try{m=JSON.parse(t).error.message}catch(e){}throw new Error(`Error ${r.status}: ${m}`.slice(0,250))}
+ return r.status===204?null:r.json();
+}
+
+/* ================= Google Sheets como base de datos ================= */
+const SH='https://sheets.googleapis.com/v4/spreadsheets/';
+const DRV='https://www.googleapis.com/drive/v3/files';
+const DRVX='&supportsAllDrives=true&includeItemsFromAllDrives=true';
+async function ensureSheet(){
+ if(!cfg.sheetId){
+  const q=encodeURIComponent("name='Plataforma_Intelmedica_BD' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+  const r=await api(`${DRV}?q=${q}&fields=files(id)${DRVX}`);
+  if(r.files.length)cfg.sheetId=r.files[0].id;
+  else{const c=await api(SH.slice(0,-1),{method:'POST',body:JSON.stringify({properties:{title:'Plataforma_Intelmedica_BD',locale:'es_CO'},sheets:Object.values(SCHEMA).map(s=>({properties:{title:s.sheet}}))})});cfg.sheetId=c.spreadsheetId;toast('Se creó la hoja "Plataforma_Intelmedica_BD" en tu Drive')}
+  saveLS(CFG_KEY,cfg);
+ }
+ const meta=await api(SH+cfg.sheetId+'?fields=sheets.properties(sheetId,title)');
+ const ex={};meta.sheets.forEach(s=>ex[s.properties.title]=s.properties.sheetId);
+ const falt=Object.values(SCHEMA).filter(s=>!(s.sheet in ex));
+ if(falt.length){const r=await api(SH+cfg.sheetId+':batchUpdate',{method:'POST',body:JSON.stringify({requests:falt.map(s=>({addSheet:{properties:{title:s.sheet}}}))})});r.replies.forEach(x=>ex[x.addSheet.properties.title]=x.addSheet.properties.sheetId)}
+ sheetIds=ex;
+ const S=Object.values(SCHEMA);
+ const hd=await api(SH+cfg.sheetId+'/values:batchGet?'+S.map(s=>'ranges='+encodeURIComponent(s.sheet+'!A1:Z1')).join('&'));
+ const data=[];S.forEach((s,i)=>{if(!(hd.valueRanges[i].values||[]).length)data.push({range:s.sheet+'!A1',values:[s.cols]})});
+ if(data.length)await api(SH+cfg.sheetId+'/values:batchUpdate',{method:'POST',body:JSON.stringify({valueInputOption:'RAW',data})});
+}
+async function loadAll(){
+ if(demo()){DB=loadLS('pbi_demo')||demoData();return}
+ const K=Object.keys(SCHEMA);
+ const r=await api(SH+cfg.sheetId+'/values:batchGet?'+K.map(k=>'ranges='+encodeURIComponent(SCHEMA[k].sheet+'!A2:Z')).join('&'));
+ K.forEach((k,i)=>{const cols=SCHEMA[k].cols;DB[k]=(r.valueRanges[i].values||[]).filter(row=>row[0]).map(row=>Object.fromEntries(cols.map((c,j)=>[c,DATECOLS.includes(c)?normDate(row[j]):String(row[j]??'')])))});
+ saveLS('pbi_cache',DB);
+}
+async function filaDe(kind,id){const ids=await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(SCHEMA[kind].sheet+'!A:A'));return(ids.values||[]).findIndex(r=>r[0]===id)}
+async function saveRow(kind,obj){
+ if(!demo()){
+  const s=SCHEMA[kind],row=s.cols.map(c=>obj[c]??'');
+  const idx=await filaDe(kind,obj.id);
+  if(idx>=1)await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(s.sheet+'!A'+(idx+1))+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[row]})});
+  else await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(s.sheet+'!A1')+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:[row]})});
+ }
+ const L=DB[kind],i=L.findIndex(x=>x.id===obj.id);if(i>=0)L[i]=obj;else L.push(obj);
+ demo()?saveLS('pbi_demo',DB):saveLS('pbi_cache',DB);
+}
+async function deleteRow(kind,id){
+ if(!demo()){const idx=await filaDe(kind,id);if(idx>=1)await api(SH+cfg.sheetId+':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:sheetIds[SCHEMA[kind].sheet],dimension:'ROWS',startIndex:idx,endIndex:idx+1}}}]})})}
+ DB[kind]=DB[kind].filter(x=>x.id!==id);
+ demo()?saveLS('pbi_demo',DB):saveLS('pbi_cache',DB);
+}
+
+/* ================= Google Calendar ================= */
+const calBase=()=>'https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(cfg.calendarId||'primary')+'/events';
+async function syncEvento(eq){
+ if(!eq.proximo)return;
+ if(demo()){eq.calEventId='demo-'+eq.id;return}
+ const c=cliente(eq.clienteId)||{};
+ const body={summary:`🔧 Mtto preventivo · ${eqNombre(eq)} · ${c.nombre||''}`,
+  description:`Cliente: ${c.nombre||''}${c.nit?' (NIT '+c.nit+')':''}\nContacto: ${c.contacto||''} ${c.telefono||''}\nEquipo: ${eqNombre(eq)}\nSerie: ${eq.serie||'—'}  Inventario: ${eq.inventario||'—'}\nUbicación: ${eq.ubicacion||'—'}\nPeriodicidad: cada ${eq.periodicidad||'?'} meses\nÚltimo mantenimiento: ${fmtD(eq.ultimo)}`,
+  location:[c.direccion,c.ciudad].filter(Boolean).join(', '),
+  start:{date:eq.proximo},end:{date:addDays(eq.proximo,1)},status:'confirmed',transparency:'transparent',
+  reminders:{useDefault:false,overrides:[{method:'popup',minutes:7*1440},{method:'popup',minutes:1440}]}};
+ if(eq.calEventId){try{await api(calBase()+'/'+encodeURIComponent(eq.calEventId),{method:'PATCH',body:JSON.stringify(body)});return}catch(e){if(e instanceof AuthError)throw e}}
+ const ev=await api(calBase(),{method:'POST',body:JSON.stringify(body)});eq.calEventId=ev.id;
+}
+async function borrarEvento(eq){if(!eq.calEventId||demo())return;try{await api(calBase()+'/'+encodeURIComponent(eq.calEventId),{method:'DELETE'})}catch(e){if(e instanceof AuthError)throw e}}
+
+/* ================= Google Drive: búsqueda ================= */
+const FOLDER='application/vnd.google-apps.folder';
+async function driveList(q,order=true){
+ const r=await api(`${DRV}?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,webViewLink,modifiedTime)&pageSize=100${order?'&orderBy=folder,name':''}${DRVX}`);
+ return r.files;
+}
+let treeCache=null;
+async function arbolManuales(){
+ if(treeCache&&treeCache.root===cfg.manualesFolder)return treeCache.ids;
+ let all=[cfg.manualesFolder],nivel=[cfg.manualesFolder];
+ while(nivel.length&&all.length<400){
+  const sig=[];
+  for(let i=0;i<nivel.length;i+=30){const ch=nivel.slice(i,i+30).map(id=>`'${dq(id)}' in parents`).join(' or ');(await driveList(`mimeType='${FOLDER}' and trashed=false and (${ch})`,false)).forEach(f=>sig.push(f.id))}
+  all=all.concat(sig);nivel=sig;
+ }
+ treeCache={root:cfg.manualesFolder,ids:all};return all;
+}
+const icono=m=>m===FOLDER?'📁':m==='application/pdf'?'📕':m.includes('spreadsheet')||m.includes('excel')?'📊':m.includes('document')||m.includes('word')?'📄':m.startsWith('image/')?'🖼️':'📎';
+function itemArchivo(f,act=''){
+ if(f.mimeType===FOLDER)return`<div class="item clk" data-a="abrirCarpeta" data-id="${esc(f.id)}" data-n="${esc(f.name)}"><span class="ic">📁</span><div class="main"><div class="t">${esc(f.name)}</div></div></div>`;
+ return`<div class="item"><span class="ic">${icono(f.mimeType)}</span><div class="main"><div class="t">${esc(f.name)}</div><div class="s">Modificado ${fmtD((f.modifiedTime||'').slice(0,10))}</div></div>${act||`<a class="btn sm ghost" href="${esc(f.webViewLink)}" target="_blank" rel="noopener">Abrir</a>`}</div>`;
+}
+
+/* ================= estado y navegación ================= */
+let S={view:'inicio',clienteId:null,filtro:'alerta',folders:[],mqPend:''};
+function go(v,id){S.view=v;if(id)S.clienteId=id;render();scrollTo(0,0)}
+function estado(e){
+ if(e.estado==='Dado de baja')return{c:'gris',t:'De baja',d:null};
+ if(!e.proximo)return{c:'gris',t:'Sin programar',d:null};
+ const d=diasHasta(e.proximo),av=Number(cfg.aviso)||30;
+ if(d<0)return{c:'rojo',t:`Vencido hace ${-d} d`,d};
+ if(d<=7)return{c:'naranja',t:d===0?'Hoy':`En ${d} d`,d};
+ if(d<=av)return{c:'amarillo',t:`En ${d} d`,d};
+ return{c:'verde',t:'Al día',d};
+}
+function render(){
+ const nv=S.view==='cliente'?'clientes':S.view;
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.id===nv));
+ const V={inicio:vInicio,clientes:vClientes,cliente:vCliente,manuales:vManuales,config:vConfig}[S.view]||vInicio;
+ $('#app').innerHTML=banner()+V();
+ if(S.view==='manuales'&&cfg.modo==='drive'&&cfg.manualesFolder&&conectado()){if(S.mqPend){const q=S.mqPend;S.mqPend='';$('#mq').value=q;buscarManual(q)}else cargarCarpeta()}
+}
+function banner(){
+ if(demo())return`<div class="banner i">🧪 Modo demo: datos de prueba guardados solo en este navegador. <span class="sp"></span><button class="btn sm ghost" data-a="go" data-id="config">Conectar Google</button></div>`;
+ if(cfg.modo==='drive'&&!conectado())return`<div class="banner w">⚠️ Sin sesión de Google. Ves la última copia guardada; para editar o sincronizar, conéctate. <span class="sp"></span><button class="btn sm" data-a="reconectar">Conectar</button></div>`;
+ return'';
+}
+
+/* ================= vistas ================= */
+function filaEquipo(e,conCliente){
+ const s=estado(e),c=cliente(e.clienteId);
+ return`<div class="item"><div class="main clk" data-a="verEquipo" data-id="${esc(e.id)}"><div class="t">${esc(eqNombre(e))}</div><div class="s">${conCliente?`<b>${esc(c?.nombre||'—')}</b> · `:''}Serie ${esc(e.serie||'—')}${e.ubicacion?' · '+esc(e.ubicacion):''} · Próximo: ${fmtD(e.proximo)}</div></div><span class="chip ${s.c}">${s.t}</span><button class="btn sm" data-a="nuevoMtto" data-id="${esc(e.id)}">Registrar</button><button class="btn sm ghost" data-a="reporte" data-id="${esc(e.id)}">Reporte</button></div>`;
+}
+function vInicio(){
+ if(!cfg.modo)return`<section class="card"><h2>Bienvenido</h2><p>Esta plataforma centraliza clientes, equipos, historial de mantenimientos y manuales de servicio, con alertas de vencimiento y eventos en Google Calendar. Los datos se guardan en una hoja de Google en tu Drive, compartible con tu equipo.</p><div class="row"><button class="btn" data-a="go" data-id="config">Configurar Google</button><button class="btn ghost" data-a="demo">Probar modo demo</button></div></section>`;
+ const act=DB.equipos.filter(e=>e.estado!=='Dado de baja');
+ const st=act.map(e=>({e,s:estado(e)}));
+ const n=f=>st.filter(f).length,av=Number(cfg.aviso)||30;
+ const mes=hoy().slice(0,7);
+ const F={alerta:x=>x.s.d!==null&&x.s.d<=av,vencidos:x=>x.s.d!==null&&x.s.d<0,semana:x=>x.s.d!==null&&x.s.d>=0&&x.s.d<=7,sin:x=>x.s.d===null,todos:()=>true};
+ const lista=st.filter(F[S.filtro]).sort((a,b)=>(a.e.proximo||'9999').localeCompare(b.e.proximo||'9999'));
+ const sinEv=act.filter(e=>e.proximo&&!e.calEventId&&diasHasta(e.proximo)>=0).length;
+ const fb=(k,t)=>`<button class="${S.filtro===k?'on':''}" data-a="filtro" data-id="${k}">${t}</button>`;
+ const recientes=[...DB.mttos].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,6);
+ return`<div class="kpis">
+ <div class="kpi"><b>${DB.clientes.length}</b><span>Clientes</span></div>
+ <div class="kpi"><b>${act.length}</b><span>Equipos activos</span></div>
+ <div class="kpi r"><b>${n(F.vencidos)}</b><span>Vencidos</span></div>
+ <div class="kpi n"><b>${n(F.semana)}</b><span>Próximos 7 días</span></div>
+ <div class="kpi a"><b>${n(x=>x.s.d!==null&&x.s.d>7&&x.s.d<=av)}</b><span>8 a ${av} días</span></div>
+ <div class="kpi"><b>${DB.mttos.filter(m=>m.fecha.startsWith(mes)).length}</b><span>Mttos este mes</span></div></div>
+ <section class="card"><div class="row"><h2 style="margin:0">Tablero de vencimientos</h2><span class="sp"></span>${sinEv?`<button class="btn sm ghost" data-a="syncCal">📅 Crear ${sinEv} evento${sinEv>1?'s':''} en Calendar</button>`:'<span class="muted" style="font-size:13px">📅 Calendar al día</span>'}</div>
+ <div class="row filt" style="margin:12px 0">${fb('alerta','Requieren atención')}${fb('vencidos','Vencidos')}${fb('semana','Esta semana')}${fb('sin','Sin programar')}${fb('todos','Todos')}</div>
+ <div class="list">${lista.map(x=>filaEquipo(x.e,true)).join('')||'<div class="empty">Nada en esta categoría 👍</div>'}</div></section>
+ <section class="card"><h2>Últimos mantenimientos</h2><div class="list">${recientes.map(m=>filaMtto(m,true)).join('')||'<div class="empty">Aún no hay mantenimientos registrados</div>'}</div></section>`;
+}
+function filaMtto(m,conCliente){
+ const e=equipo(m.equipoId),c=cliente(m.clienteId);
+ return`<div class="item"><div class="main"><div class="t">${fmtD(m.fecha)} · ${esc(m.tipo)}</div><div class="s">${conCliente?`<b>${esc(c?.nombre||'—')}</b> · `:''}${esc(eqNombre(e))}${e?.serie?' · S/N '+esc(e.serie):''}${m.responsables?' · 👤 '+esc(m.responsables):''}</div>${m.descripcion?`<div class="s">${esc(m.descripcion)}</div>`:''}</div>${m.reporteUrl?`<a class="btn sm ghost" href="${esc(m.reporteUrl)}" target="_blank" rel="noopener">📄 Reporte</a>`:''}<button class="btn sm ghost" data-a="editMtto" data-id="${esc(m.id)}">Editar</button></div>`;
+}
+function vClientes(){
+ if(!cfg.modo)return vInicio();
+ const cards=[...DB.clientes].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>{
+  const eqs=DB.equipos.filter(e=>e.clienteId===c.id&&e.estado!=='Dado de baja');
+  const al=eqs.filter(e=>{const s=estado(e);return s.d!==null&&s.d<=(Number(cfg.aviso)||30)}).length;
+  const ve=eqs.filter(e=>{const s=estado(e);return s.d!==null&&s.d<0}).length;
+  return`<div class="card cli-card" data-a="verCliente" data-id="${esc(c.id)}" data-s="${esc((c.nombre+' '+c.nit+' '+c.ciudad+' '+c.contacto).toLowerCase())}"><h3>${esc(c.nombre)}</h3><div class="s muted" style="font-size:13px">${esc([c.ciudad,c.nit&&'NIT '+c.nit].filter(Boolean).join(' · ')||'—')}</div><div class="row" style="margin-top:10px"><span class="chip gris">${eqs.length} equipos</span>${ve?`<span class="chip rojo">${ve} vencidos</span>`:''}${al-ve>0?`<span class="chip amarillo">${al-ve} por vencer</span>`:''}</div></div>`}).join('');
+ return`<section class="card"><div class="row"><input id="qcli" placeholder="Buscar cliente, NIT, ciudad…" style="flex:1;min-width:200px"><button class="btn" data-a="nuevoCliente">+ Cliente</button></div></section><div class="grid2">${cards||'<div class="empty">No hay clientes. Crea el primero.</div>'}</div>`;
+}
+function vCliente(){
+ const c=cliente(S.clienteId);if(!c){S.view='clientes';return vClientes()}
+ const eqs=DB.equipos.filter(e=>e.clienteId===c.id).sort((a,b)=>(a.proximo||'9').localeCompare(b.proximo||'9'));
+ const ms=DB.mttos.filter(m=>m.clienteId===c.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+ return`<div class="row" style="margin-bottom:12px"><button class="btn sm ghost" data-a="go" data-id="clientes">← Clientes</button></div>
+ <section class="card"><div class="row"><h2 style="margin:0">${esc(c.nombre)}</h2><span class="sp"></span><button class="btn sm ghost" data-a="editCliente" data-id="${esc(c.id)}">Editar</button></div>
+ <div class="info" style="margin-top:12px"><div><span>NIT</span>${esc(c.nit||'—')}</div><div><span>Ciudad</span>${esc(c.ciudad||'—')}</div><div><span>Dirección</span>${esc(c.direccion||'—')}</div><div><span>Contacto</span>${esc(c.contacto||'—')}</div><div><span>Teléfono</span>${c.telefono?`<a href="tel:${esc(c.telefono)}">${esc(c.telefono)}</a>`:'—'}</div><div><span>Correo</span>${c.email?`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:'—'}</div></div>${c.notas?`<p class="muted" style="font-size:14px">${esc(c.notas)}</p>`:''}</section>
+ <section class="card"><div class="row"><h2 style="margin:0">Equipos (${eqs.length})</h2><span class="sp"></span><button class="btn sm" data-a="nuevoEquipo" data-id="${esc(c.id)}">+ Equipo</button></div><div class="list" style="margin-top:8px">${eqs.map(e=>filaEquipo(e,false)).join('')||'<div class="empty">Sin equipos registrados</div>'}</div></section>
+ <section class="card"><div class="row"><h2 style="margin:0">Historial de mantenimiento (${ms.length})</h2><span class="sp"></span>${ms.length?`<button class="btn sm ghost" data-a="csv" data-id="${esc(c.id)}">⬇ CSV</button>`:''}</div><div class="list" style="margin-top:8px">${ms.map(m=>filaMtto(m,false)).join('')||'<div class="empty">Sin mantenimientos registrados</div>'}</div></section>`;
+}
+function vManuales(){
+ if(cfg.modo!=='drive')return`<section class="card"><h2>Manuales de servicio</h2><p class="muted">Disponible al conectar Google Drive.</p></section>`;
+ if(!cfg.manualesFolder)return`<section class="card"><h2>Manuales de servicio</h2><p>Indica en Ajustes el ID de la carpeta de Drive donde guardas los manuales.</p><button class="btn" data-a="go" data-id="config">Ir a Ajustes</button></section>`;
+ if(!conectado())return'';
+ return`<section class="card"><div class="row"><input id="mq" placeholder="Buscar por marca, modelo o equipo…" style="flex:1;min-width:200px"><button class="btn" data-a="buscarManual">Buscar</button></div><div class="crumbs" id="crumbs"></div><div class="list" id="mlist"><div class="empty">Cargando…</div></div></section>`;
+}
+function vConfig(){
+ const f=(n,l,ph='',t='text')=>`<label>${l}<input name="${n}" type="${t}" value="${esc(cfg[n])}" placeholder="${esc(ph)}"></label>`;
+ return`<section class="card"><h2>Conexión con Google</h2><form data-f="config">
+ ${f('clientId','Client ID de OAuth (Google Cloud)','xxxx.apps.googleusercontent.com')}
+ <div class="fgrid">${f('manualesFolder','ID carpeta de Manuales en Drive','ID de la carpeta')}${f('mttoFolder','ID carpeta MANTENIMIENTOS (reportes)')}
+ ${f('calendarId','Calendario para recordatorios','primary o ID de calendario compartido')}${f('aviso','Días de aviso anticipado','30','number')}
+ ${f('responsables','Responsables (separados por coma)')}${f('reportUrl','URL de la app de reportes')}</div>
+ ${f('sheetId','ID de la hoja base de datos (se crea sola si está vacío)')}
+ <div class="row"><button class="btn">Guardar y conectar</button>${cfg.sheetId&&cfg.modo==='drive'?`<a class="btn ghost" href="https://docs.google.com/spreadsheets/d/${esc(cfg.sheetId)}" target="_blank" rel="noopener">Abrir hoja de datos</a>`:''}</div></form></section>
+ <section class="card"><h2>Otras opciones</h2><div class="row"><button class="btn ghost" data-a="demo">Modo demo</button><button class="btn ghost" data-a="respaldo">⬇ Respaldo JSON</button>${cfg.modo?`<button class="btn dan" data-a="salir">Desconectar</button>`:''}</div></section>
+ <section class="card"><details><summary>¿Cómo obtener el Client ID?</summary><ol>
+ <li>Usa el mismo proyecto de Google Cloud de la app de reportes (o crea uno en <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a>).</li>
+ <li>En <b>APIs y servicios → Biblioteca</b>, habilita <b>Google Drive API</b>, <b>Google Sheets API</b> y <b>Google Calendar API</b>.</li>
+ <li>En <b>Pantalla de consentimiento</b>, agrega los permisos de Drive y <code>calendar.events</code>, y añade los correos de los usuarios de prueba (tú y Evelyn).</li>
+ <li>En <b>Credenciales</b>, abre el ID de cliente web y agrega en <b>Orígenes de JavaScript autorizados</b> la dirección donde publicas esta plataforma (p. ej. <code>https://biotronica.github.io</code>).</li>
+ <li>Copia el Client ID aquí y pulsa <b>Guardar y conectar</b>.</li></ol>
+ <p class="muted" style="font-size:13px">Para que ambos vean los mismos datos: comparte la hoja <b>Plataforma_Intelmedica_BD</b> con Evelyn y que ella pegue su ID en el campo correspondiente. Para recordatorios compartidos, crea un calendario "Mantenimientos Intelmedica", compártelo y usa su ID.</p></details></section>`;
+}
+
+/* ================= formularios ================= */
+const fld=(n,l,v='',t='text',x='')=>`<label>${l}<input name="${n}" type="${t}" value="${esc(v)}" ${x}></label>`;
+function modal(titulo,html){$('#mbox').innerHTML=`<h2>${titulo}<button class="x" data-a="cerrar">×</button></h2>${html}`;$('#modal').classList.remove('hidden')}
+function cerrar(){$('#modal').classList.add('hidden')}
+function formCliente(c={}){
+ modal(c.id?'Editar cliente':'Nuevo cliente',`<form data-f="cliente"><input type="hidden" name="id" value="${esc(c.id||'')}">
+ ${fld('nombre','Nombre / razón social *',c.nombre,'text','required')}<div class="fgrid">${fld('nit','NIT',c.nit)}${fld('ciudad','Ciudad',c.ciudad||'Cali')}</div>
+ ${fld('direccion','Dirección',c.direccion)}<div class="fgrid">${fld('contacto','Persona de contacto',c.contacto)}${fld('telefono','Teléfono',c.telefono,'tel')}</div>
+ ${fld('email','Correo',c.email,'email')}<label>Notas<textarea name="notas">${esc(c.notas||'')}</textarea></label>
+ <div class="row"><button class="btn">Guardar</button>${c.id?`<span class="sp"></span><button type="button" class="btn dan" data-a="delCliente" data-id="${esc(c.id)}">Eliminar</button>`:''}</div></form>`);
+}
+function formEquipo(e){
+ const per=[1,2,3,4,6,12,24];
+ modal(e.id?'Editar equipo':'Nuevo equipo',`<form data-f="equipo"><input type="hidden" name="id" value="${esc(e.id||'')}"><input type="hidden" name="clienteId" value="${esc(e.clienteId)}">
+ <div class="fgrid">${fld('tipo','Tipo de equipo *',e.tipo,'text','list="tipos" required')}${fld('marca','Marca',e.marca)}${fld('modelo','Modelo',e.modelo)}${fld('serie','Serie',e.serie)}${fld('inventario','N.º inventario / activo',e.inventario)}${fld('ubicacion','Servicio / ubicación',e.ubicacion)}</div>
+ <div class="fgrid"><label>Periodicidad del preventivo<select name="periodicidad">${per.map(p=>`<option value="${p}" ${String(e.periodicidad||6)===String(p)?'selected':''}>Cada ${p} ${p===1?'mes':'meses'}</option>`).join('')}</select></label>
+ <label>Estado<select name="estado">${['Activo','En reparación','Dado de baja'].map(s=>`<option ${(e.estado||'Activo')===s?'selected':''}>${s}</option>`).join('')}</select></label>
+ ${fld('ultimo','Último mantenimiento',e.ultimo,'date')}${fld('proximo','Próximo mantenimiento',e.proximo,'date')}</div>
+ <label class="chk"><input type="checkbox" name="cal" ${cfg.modo==='drive'?'checked':''}> Crear/actualizar recordatorio en Google Calendar</label><br>
+ <div class="row"><button class="btn">Guardar</button>${e.id?`<span class="sp"></span><button type="button" class="btn dan" data-a="delEquipo" data-id="${esc(e.id)}">Eliminar</button>`:''}</div></form>`);
+}
+function formMtto(m){
+ const eqs=DB.equipos.filter(e=>e.clienteId===m.clienteId);
+ const resp=(m.responsables||'').split(',').map(s=>s.trim());
+ const nuevo=!m.id;
+ modal(nuevo?'Registrar mantenimiento':'Editar mantenimiento',`<form data-f="mtto"><input type="hidden" name="id" value="${esc(m.id||'')}"><input type="hidden" name="clienteId" value="${esc(m.clienteId)}">
+ <p class="muted" style="margin-top:0">${esc(cliente(m.clienteId)?.nombre||'')}</p>
+ <label>Equipo<select name="equipoId">${eqs.map(e=>`<option value="${esc(e.id)}" ${e.id===m.equipoId?'selected':''}>${esc(eqNombre(e))} · S/N ${esc(e.serie||'—')}</option>`).join('')}</select></label>
+ <div class="fgrid">${fld('fecha','Fecha',m.fecha||hoy(),'date','required')}<label>Tipo<select name="tipo">${['Preventivo','Correctivo','Calibración','Instalación','Capacitación','Diagnóstico'].map(t=>`<option ${(m.tipo||'Preventivo')===t?'selected':''}>${t}</option>`).join('')}</select></label></div>
+ <label>Responsables</label><div class="row" style="margin:-4px 0 12px">${responsables().map(r=>`<label class="chk" style="margin:0"><input type="checkbox" name="resp" value="${esc(r)}" ${(nuevo&&!m.responsables)||resp.includes(r)?'checked':''}> ${esc(r)}</label>`).join('')}</div>
+ <label>Trabajo realizado / observaciones<textarea name="descripcion">${esc(m.descripcion||'')}</textarea></label>
+ <label>Enlace al reporte (Drive)<div class="row" style="margin-top:4px"><input name="reporteUrl" value="${esc(m.reporteUrl||'')}" placeholder="https://drive.google.com/…" style="flex:1;min-width:180px;margin:0">${cfg.modo==='drive'?'<button type="button" class="btn sm ghost" data-a="buscarReporte">Buscar en Drive</button>':''}</div></label>
+ <div id="repRes" class="list"></div>
+ ${nuevo?`<label class="chk"><input type="checkbox" name="act" checked> Actualizar fecha del próximo preventivo <span class="muted" id="proxPrev"></span></label><label class="chk" style="margin-top:6px"><input type="checkbox" name="cal" ${cfg.modo==='drive'?'checked':''}> Actualizar recordatorio en Google Calendar</label><br>`:''}
+ <div class="row"><button class="btn">Guardar</button>${m.id?`<span class="sp"></span><button type="button" class="btn dan" data-a="delMtto" data-id="${esc(m.id)}">Eliminar</button>`:''}</div></form>`);
+ if(nuevo)prevProx();
+}
+function prevProx(){
+ const f=$('#mbox form[data-f=mtto]');if(!f||!f.act)return;
+ const e=equipo(f.equipoId.value),pre=f.tipo.value==='Preventivo';
+ if(document.activeElement!==f.act&&f._tipoPrev!==f.tipo.value){f.act.checked=pre;f._tipoPrev=f.tipo.value}
+ $('#proxPrev').textContent=e&&f.fecha.value?`→ ${fmtD(addMonths(f.fecha.value,e.periodicidad||6))}`:'';
+}
+
+/* ================= acciones ================= */
+async function run(fn){
+ setBusy(true);
+ try{return await fn()}
+ catch(e){console.error(e);if(e instanceof AuthError){token=null;render();toast('Sesión de Google expirada. Pulsa "Conectar".','err')}else toast(e.message||String(e),'err')}
+ finally{setBusy(false)}
+}
+async function conectar(){await getToken();await ensureSheet();await loadAll();render();toast('Conectado a Google ✔')}
+async function cargarCarpeta(){
+ const f=S.folders.length?S.folders:(S.folders=[{id:cfg.manualesFolder,n:'Manuales'}]);
+ $('#crumbs').innerHTML=f.map((x,i)=>i<f.length-1?`<a data-a="crumb" data-id="${i}">${esc(x.n)}</a> › `:`<b>${esc(x.n)}</b>`).join('');
+ await run(async()=>{const fs=await driveList(`'${dq(f[f.length-1].id)}' in parents and trashed=false`);$('#mlist').innerHTML=fs.map(x=>itemArchivo(x)).join('')||'<div class="empty">Carpeta vacía</div>'});
+}
+async function buscarManual(q){
+ q=(q||'').trim();if(!q){S.folders=[];return cargarCarpeta()}
+ $('#crumbs').innerHTML=`Resultados para <b>${esc(q)}</b> · <a data-a="crumb" data-id="0">Volver a carpetas</a>`;
+ $('#mlist').innerHTML='<div class="empty">Buscando…</div>';
+ await run(async()=>{
+  const ids=await arbolManuales(),pal=q.split(/\s+/).filter(Boolean).map(w=>`name contains '${dq(w)}'`).join(' and ');
+  let res=[];for(let i=0;i<ids.length;i+=30){const ch=ids.slice(i,i+30).map(id=>`'${dq(id)}' in parents`).join(' or ');res=res.concat(await driveList(`${pal} and trashed=false and mimeType!='${FOLDER}' and (${ch})`,false))}
+  res.sort((a,b)=>a.name.localeCompare(b.name));
+  $('#mlist').innerHTML=res.map(x=>itemArchivo(x)).join('')||'<div class="empty">Sin resultados. Prueba solo con el modelo.</div>';
+ });
+}
+async function reportesDeEquipo(e,box,seleccionar){
+ if(!e?.serie){box.innerHTML='<div class="empty">El equipo no tiene serie registrada para buscar.</div>';return}
+ box.innerHTML='<div class="empty">Buscando reportes con la serie '+esc(e.serie)+'…</div>';
+ await run(async()=>{
+  const fs=(await driveList(`fullText contains '${dq(e.serie)}' and trashed=false and mimeType!='${FOLDER}'`,false)).sort((a,b)=>(b.modifiedTime||'').localeCompare(a.modifiedTime||'')).slice(0,15);
+  box.innerHTML=fs.map(f=>itemArchivo(f,seleccionar?`<button type="button" class="btn sm" data-a="usarReporte" data-id="${esc(f.webViewLink)}">Usar</button>`:'')).join('')||'<div class="empty">No se encontraron reportes en Drive con esa serie.</div>';
+ });
+}
+function abrirReporte(e){
+ const c=cliente(e?.clienteId)||{};
+ const p=new URLSearchParams(Object.entries({cliente:c.nombre,nit:c.nit,ciudad:c.ciudad,direccion:c.direccion,tipo:e?.tipo,marca:e?.marca,modelo:e?.modelo,serie:e?.serie,inventario:e?.inventario,ubicacion:e?.ubicacion}).filter(([k,v])=>v));
+ window.open(cfg.reportUrl+(e?'?'+p:''),'_blank','noopener');
+}
+
+const ACT={
+ go:id=>{if(id==='manuales')S.folders=[];go(id)},
+ filtro:id=>{S.filtro=id;render()},
+ cerrar,
+ demo:()=>{cfg.modo='demo';saveLS(CFG_KEY,cfg);DB=loadLS('pbi_demo')||demoData();saveLS('pbi_demo',DB);go('inicio');toast('Modo demo activado')},
+ salir:()=>{if(!confirm('¿Desconectar? Se borra la configuración de este navegador (tus datos en Drive no se tocan).'))return;if(token&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(token);token=null;sessionStorage.removeItem('pbi_tok');localStorage.removeItem('pbi_cache');cfg=Object.assign({},DEF,{clientId:cfg.clientId});saveLS(CFG_KEY,cfg);DB={clientes:[],equipos:[],mttos:[]};go('inicio')},
+ reconectar:()=>run(conectar),
+ refrescar:()=>{if(cfg.modo==='drive')run(async()=>{await loadAll();render();toast('Datos actualizados')});else render()},
+ abrirReportes:()=>abrirReporte(null),
+ respaldo:()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}));a.download=`respaldo_plataforma_${hoy()}.json`;a.click()},
+ verCliente:id=>go('cliente',id),
+ nuevoCliente:()=>formCliente(),
+ editCliente:id=>formCliente(cliente(id)),
+ delCliente:id=>{if(DB.equipos.some(e=>e.clienteId===id))return toast('Primero elimina o traslada los equipos del cliente','err');if(confirm('¿Eliminar este cliente?'))run(async()=>{await deleteRow('clientes',id);cerrar();go('clientes');toast('Cliente eliminado')})},
+ nuevoEquipo:id=>formEquipo({clienteId:id}),
+ verEquipo:id=>{
+  const e=equipo(id),c=cliente(e.clienteId),s=estado(e),ms=DB.mttos.filter(m=>m.equipoId===id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  modal(esc(eqNombre(e)),`<div class="row" style="margin-bottom:10px"><span class="chip ${s.c}">${s.t}</span><span class="muted">${esc(c?.nombre||'')}</span></div>
+  <div class="info"><div><span>Serie</span>${esc(e.serie||'—')}</div><div><span>Inventario</span>${esc(e.inventario||'—')}</div><div><span>Ubicación</span>${esc(e.ubicacion||'—')}</div><div><span>Periodicidad</span>Cada ${esc(e.periodicidad||'?')} meses</div><div><span>Último</span>${fmtD(e.ultimo)}</div><div><span>Próximo</span>${fmtD(e.proximo)}</div><div><span>Estado</span>${esc(e.estado||'Activo')}</div><div><span>Calendar</span>${e.calEventId?'✔ Programado':'—'}</div></div>
+  <div class="row" style="margin:14px 0"><button class="btn sm" data-a="nuevoMtto" data-id="${esc(id)}">Registrar mtto</button><button class="btn sm ghost" data-a="reporte" data-id="${esc(id)}">📝 Generar reporte</button>${cfg.modo==='drive'?`<button class="btn sm ghost" data-a="manualDe" data-id="${esc(id)}">📚 Manual</button><button class="btn sm ghost" data-a="repsDrive" data-id="${esc(id)}">🔎 Reportes en Drive</button>`:''}<button class="btn sm ghost" data-a="editEquipo" data-id="${esc(id)}">Editar</button></div>
+  <div id="repsBox" class="list"></div><h3 style="margin-top:12px">Historial (${ms.length})</h3><div class="list">${ms.map(m=>filaMtto(m,false)).join('')||'<div class="empty">Sin registros</div>'}</div>`);
+ },
+ editEquipo:id=>formEquipo(equipo(id)),
+ delEquipo:id=>{const e=equipo(id);if(!confirm('¿Eliminar este equipo? Su historial de mantenimientos se conserva.'))return;run(async()=>{await borrarEvento(e);await deleteRow('equipos',id);cerrar();render();toast('Equipo eliminado')})},
+ nuevoMtto:id=>{const e=equipo(id);formMtto({equipoId:id,clienteId:e.clienteId})},
+ editMtto:id=>formMtto(DB.mttos.find(m=>m.id===id)),
+ delMtto:id=>{if(confirm('¿Eliminar este registro de mantenimiento?'))run(async()=>{await deleteRow('mttos',id);cerrar();render();toast('Registro eliminado')})},
+ reporte:id=>abrirReporte(equipo(id)),
+ repsDrive:id=>reportesDeEquipo(equipo(id),$('#repsBox'),false),
+ buscarReporte:()=>{const f=$('#mbox form');reportesDeEquipo(equipo(f.equipoId.value),$('#repRes'),true)},
+ usarReporte:url=>{$('#mbox form').reporteUrl.value=url;$('#repRes').innerHTML='';toast('Reporte enlazado')},
+ manualDe:id=>{const e=equipo(id);S.mqPend=[e.modelo||e.marca||e.tipo].join(' ');S.folders=[];cerrar();go('manuales')},
+ abrirCarpeta:(id,b)=>{S.folders.push({id,n:b.dataset.n});cargarCarpeta()},
+ crumb:i=>{S.folders=S.folders.slice(0,Number(i)+1);const q=$('#mq');if(q)q.value='';cargarCarpeta()},
+ buscarManual:()=>buscarManual($('#mq').value),
+ syncCal:()=>run(async()=>{
+  const L=DB.equipos.filter(e=>e.estado!=='Dado de baja'&&e.proximo&&!e.calEventId&&diasHasta(e.proximo)>=0);let n=0;
+  for(const e of L){const x={...e};await syncEvento(x);await saveRow('equipos',x);n++;toast(`Creando eventos… ${n}/${L.length}`)}
+  render();toast(`${n} recordatorio${n!==1?'s':''} creado${n!==1?'s':''} en Calendar ✔`);
+ }),
+ csv:id=>{
+  const c=cliente(id),ms=DB.mttos.filter(m=>m.clienteId===id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=[['Fecha','Tipo','Equipo','Marca','Modelo','Serie','Ubicación','Responsables','Descripción','Próximo','Reporte']].concat(ms.map(m=>{const e=equipo(m.equipoId)||{};return[m.fecha,m.tipo,e.tipo,e.marca,e.modelo,e.serie,e.ubicacion,m.responsables,m.descripcion,m.proximo,m.reporteUrl]}));
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(';')).join('\n')],{type:'text/csv'}));a.download=`historial_${c.nombre.replace(/\W+/g,'_')}_${hoy()}.csv`;a.click();
+ }
+};
+
+const SUBMIT={
+ config:async fd=>{
+  const old=cfg.clientId;['clientId','manualesFolder','mttoFolder','calendarId','aviso','responsables','reportUrl','sheetId'].forEach(k=>cfg[k]=String(fd.get(k)||'').trim());
+  cfg.aviso=Number(cfg.aviso)||30;cfg.calendarId=cfg.calendarId||'primary';cfg.reportUrl=cfg.reportUrl||DEF.reportUrl;cfg.responsables=cfg.responsables||DEF.responsables;
+  if(old!==cfg.clientId)tokenClient=null;treeCache=null;
+  if(!cfg.clientId){saveLS(CFG_KEY,cfg);return toast('Ajustes guardados')}
+  cfg.modo='drive';saveLS(CFG_KEY,cfg);await conectar();go('inicio');
+ },
+ cliente:async fd=>{
+  const o=Object.fromEntries(SCHEMA.clientes.cols.map(c=>[c,String(fd.get(c)||'').trim()]));o.id=o.id||uid('C');
+  await saveRow('clientes',o);cerrar();S.view==='cliente'?render():go('cliente',o.id);toast('Cliente guardado');
+ },
+ equipo:async fd=>{
+  const prev=equipo(fd.get('id'))||{};
+  const o={...prev,...Object.fromEntries(SCHEMA.equipos.cols.filter(c=>c!=='calEventId').map(c=>[c,String(fd.get(c)||'').trim()]))};o.id=o.id||uid('E');o.calEventId=prev.calEventId||'';
+  if(!o.proximo&&o.ultimo)o.proximo=addMonths(o.ultimo,o.periodicidad);
+  if(o.estado==='Dado de baja'&&o.calEventId){await borrarEvento(o);o.calEventId=''}
+  else if(fd.get('cal')&&o.proximo)await syncEvento(o);
+  await saveRow('equipos',o);cerrar();render();toast('Equipo guardado');
+ },
+ mtto:async fd=>{
+  const prev=DB.mttos.find(m=>m.id===fd.get('id'))||{};
+  const o={...prev,id:prev.id||uid('M'),equipoId:fd.get('equipoId'),clienteId:fd.get('clienteId'),fecha:fd.get('fecha'),tipo:fd.get('tipo'),responsables:fd.getAll('resp').join(', '),descripcion:String(fd.get('descripcion')||'').trim(),reporteUrl:String(fd.get('reporteUrl')||'').trim(),proximo:prev.proximo||''};
+  const e=equipo(o.equipoId);
+  if(!prev.id&&fd.get('act')&&e){
+   const x={...e};o.proximo=addMonths(o.fecha,x.periodicidad||6);
+   if(!x.ultimo||o.fecha>=x.ultimo){x.ultimo=o.fecha;x.proximo=o.proximo}
+   if(fd.get('cal'))await syncEvento(x);
+   await saveRow('equipos',x);
+  }
+  await saveRow('mttos',o);cerrar();render();toast('Mantenimiento registrado ✔');
+ }
+};
+
+/* ================= eventos globales ================= */
+document.addEventListener('click',ev=>{
+ const b=ev.target.closest('[data-a]');if(!b)return;
+ if(b.tagName==='A'&&b.href)return;
+ ev.preventDefault();const f=ACT[b.dataset.a];if(f)f(b.dataset.id,b,ev);
+});
+document.addEventListener('submit',ev=>{
+ const f=ev.target.closest('form[data-f]');if(!f)return;ev.preventDefault();
+ const fn=SUBMIT[f.dataset.f];if(!fn)return;
+ const btn=f.querySelector('button:not([type=button])');if(btn)btn.disabled=true;
+ run(()=>fn(new FormData(f))).finally(()=>{if(btn)btn.disabled=false});
+});
+document.addEventListener('input',ev=>{
+ if(ev.target.id==='qcli'){const q=ev.target.value.toLowerCase();document.querySelectorAll('.cli-card').forEach(c=>c.style.display=c.dataset.s.includes(q)?'':'none')}
+});
+document.addEventListener('change',ev=>{
+ const f=ev.target.form;if(!f)return;
+ if(f.dataset.f==='equipo'&&['ultimo','periodicidad'].includes(ev.target.name)&&f.ultimo.value)f.proximo.value=addMonths(f.ultimo.value,f.periodicidad.value);
+ if(f.dataset.f==='mtto')prevProx();
+});
+document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='mq'){ev.preventDefault();buscarManual(ev.target.value)}if(ev.key==='Escape')cerrar()});
+$('#modal').addEventListener('click',ev=>{if(ev.target.id==='modal')cerrar()});
+
+/* ================= datos demo ================= */
+function demoData(){
+ const h=hoy(),d=n=>addDays(h,n);
+ const C=[{id:'C1',nombre:'Clínica Demo Norte',nit:'900111222-1',ciudad:'Cali',direccion:'Av. 6N #20-30',contacto:'Coord. Biomédica',telefono:'6020000001',email:'demo1@ejemplo.com',notas:''},
+  {id:'C2',nombre:'IPS Demo Sur',nit:'900333444-2',ciudad:'Jamundí',direccion:'Cra 10 #5-12',contacto:'Jefe de enfermería',telefono:'6020000002',email:'demo2@ejemplo.com',notas:'Visitas solo en la mañana'},
+  {id:'C3',nombre:'Centro Médico Demo',nit:'900555666-3',ciudad:'Palmira',direccion:'Calle 30 #28-40',contacto:'Administración',telefono:'6020000003',email:'',notas:''}];
+ const E=[['E1','C1','Monitor de signos vitales','EDAN','X8','X8-0001','UCI cama 1',6,-190,-10],['E2','C1','Desfibrilador','Mindray','uMED20','UM-0002','Urgencias',6,-175,5],['E3','C1','Bomba de infusión','B. Braun','Infusomat','BB-0003','Hospitalización',12,-340,25],
+  ['E4','C2','Electrocardiógrafo','Contec','ECG1200G','CT-0004','Consulta',12,-100,265],['E5','C2','Autoclave','Tuttnauer','2540M','TT-0005','Esterilización',3,-95,-5],
+  ['E6','C3','Monitor de signos vitales','EDAN','iM50','IM-0006','Observación',6,-60,122],['E7','C3','Succionador','Yuwell','7A-23D','YW-0007','Procedimientos',6,-182,2]]
+  .map(([id,cl,tipo,marca,modelo,serie,ub,per,u,p])=>({id,clienteId:cl,tipo,marca,modelo,serie,inventario:'',ubicacion:ub,periodicidad:String(per),ultimo:d(u),proximo:d(p),calEventId:'',estado:'Activo'}));
+ const M=E.map((e,i)=>({id:'M'+i,equipoId:e.id,clienteId:e.clienteId,fecha:e.ultimo,tipo:'Preventivo',responsables:'Ramiro, Evelyn',descripcion:'Inspección, limpieza, pruebas de funcionamiento y seguridad eléctrica.',reporteUrl:'',proximo:e.proximo}));
+ return{clientes:C,equipos:E,mttos:M};
+}
+
+/* ================= inicio ================= */
+(async function init(){
+ if(demo())DB=loadLS('pbi_demo')||demoData();
+ else if(cfg.modo==='drive'){DB=loadLS('pbi_cache')||DB;if(conectado()){render();await run(async()=>{await ensureSheet();await loadAll()})}}
+ render();
+})();
+</script>
+</body>
+</html>
