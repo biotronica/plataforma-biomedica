@@ -415,12 +415,13 @@ async function cargarCarpeta(){
 }
 async function buscarManual(q){
  q=(q||'').trim();if(!q){S.folders=[];return cargarCarpeta()}
+ S.folders=[{id:cfg.manualesFolder,n:'Manuales'}];
  $('#crumbs').innerHTML=`Resultados para <b>${esc(q)}</b> · <a data-a="crumb" data-id="0">Volver a carpetas</a>`;
  $('#mlist').innerHTML='<div class="empty">Buscando…</div>';
  await run(async()=>{
   const ids=await arbolManuales(),pal=q.split(/\s+/).filter(Boolean).map(w=>`name contains '${dq(w)}'`).join(' and ');
-  let res=[];for(let i=0;i<ids.length;i+=30){const ch=ids.slice(i,i+30).map(id=>`'${dq(id)}' in parents`).join(' or ');res=res.concat(await driveList(`${pal} and trashed=false and mimeType!='${FOLDER}' and (${ch})`,false))}
-  res.sort((a,b)=>a.name.localeCompare(b.name));
+  let res=[];for(let i=0;i<ids.length;i+=30){const ch=ids.slice(i,i+30).map(id=>`'${dq(id)}' in parents`).join(' or ');res=res.concat(await driveList(`${pal} and trashed=false and (${ch})`,false))}
+  res.sort((a,b)=>((b.mimeType===FOLDER)-(a.mimeType===FOLDER))||a.name.localeCompare(b.name));
   $('#mlist').innerHTML=res.map(x=>itemArchivo(x)).join('')||'<div class="empty">Sin resultados. Prueba solo con el modelo.</div>';
  });
 }
