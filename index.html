@@ -87,7 +87,7 @@ code{background:var(--gr2);padding:1px 5px;border-radius:4px;font-size:13px}
 </head>
 <body>
 <header>
- <h1>Plataforma Biomédica<small>INTELMEDICA · Gestión de mantenimiento · v1.2</small></h1>
+ <h1>Plataforma Biomédica<small>INTELMEDICA · Gestión de mantenimiento · v1.3</small></h1>
  <div id="busy"></div>
  <button class="hbtn" data-a="refrescar" title="Actualizar datos">⟳</button>
  <button class="hbtn" data-a="abrirReportes" title="App de reportes">📝 Reportes</button>
@@ -127,8 +127,9 @@ $('#tipos').innerHTML=TIPOS.map(t=>`<option value="${t}">`).join('');
 
 /* ================= configuración ================= */
 const CFG_KEY='pbi_cfg';
-const DEF={clientId:'',sheetId:'',manualesFolder:'',mttoFolder:'1-KMSW8rkSDPJ3O7eMiUqzEVUMRzqMUYs',calendarId:'primary',reportUrl:'https://biotronica.github.io/Reportes-biomedicos/',responsables:'Ramiro, Evelyn',aviso:30,modo:''};
+const DEF={clientId:'',sheetId:'',manualesFolder:'',mttoFolder:'1F4xPV_Ot0oJftSvz-GgLEmb6CfI5Mun4',perDef:6,calendarId:'primary',reportUrl:'https://biotronica.github.io/Reportes-biomedicos/',responsables:'Ramiro, Evelyn',aviso:30,modo:''};
 let cfg=Object.assign({},DEF,loadLS(CFG_KEY)||{});
+if(cfg.mttoFolder==='1-KMSW8rkSDPJ3O7eMiUqzEVUMRzqMUYs')cfg.mttoFolder=DEF.mttoFolder;
 const responsables=()=>cfg.responsables.split(',').map(s=>s.trim()).filter(Boolean);
 const demo=()=>cfg.modo==='demo';
 
@@ -173,7 +174,7 @@ async function api(url,opt={}){
 /* ================= Google Sheets como base de datos ================= */
 const SH='https://sheets.googleapis.com/v4/spreadsheets/';
 const DRV='https://www.googleapis.com/drive/v3/files';
-const DRVX='&supportsAllDrives=true&includeItemsFromAllDrives=true';
+const DRVX='&supportsAllDrives=true&includeItemsFromAllDrives=true&corpora=allDrives';
 async function ensureSheet(){
  if(!cfg.sheetId){
   const q=encodeURIComponent("name='Plataforma_Intelmedica_BD' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
@@ -214,6 +215,80 @@ async function deleteRow(kind,id){
  if(!demo()){const idx=await filaDe(kind,id);if(idx>=1)await api(SH+cfg.sheetId+':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:sheetIds[SCHEMA[kind].sheet],dimension:'ROWS',startIndex:idx,endIndex:idx+1}}}]})})}
  DB[kind]=DB[kind].filter(x=>x.id!==id);
  demo()?saveLS('pbi_demo',DB):saveLS('pbi_cache',DB);
+}
+
+
+/* ================= sincronización con la app de reportes ================= */
+const BASE_REP='Base de Clientes - Intelmedica';
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const normSerie=s=>norm(s).replace(/[^a-z0-9]/g,'');
+const eqClave=e=>normSerie(e.serie)?'S:'+normSerie(e.serie):'T:'+norm(e.tipo)+'|'+norm(e.marca)+'|'+norm(e.modelo);
+let syncing=false,ultimaSync=null;
+async function baseReportesId(){
+ if(cfg.baseRepId)return cfg.baseRepId;
+ const n=`name='${dq(BASE_REP)}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`;
+ let f=cfg.mttoFolder?await driveList(`${n} and '${dq(cfg.mttoFolder)}' in parents`,false):[];
+ if(!f.length)f=await driveList(n,false);
+ if(!f.length)return null;
+ cfg.baseRepId=f[0].id;saveLS(CFG_KEY,cfg);return cfg.baseRepId;
+}
+async function appendRows(kind,objs){
+ if(!objs.length)return;
+ const s=SCHEMA[kind];
+ if(!demo())for(let i=0;i<objs.length;i+=500)await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(s.sheet+'!A1')+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:objs.slice(i,i+500).map(o=>s.cols.map(c=>o[c]??''))})});
+ DB[kind].push(...objs);
+}
+async function sincronizarReportes(manual){
+ if(cfg.modo!=='drive'||!conectado()||syncing)return;
+ syncing=true;
+ try{
+  const id=await baseReportesId();
+  if(!id){if(manual)toast('No encontré la hoja "'+BASE_REP+'" en Drive','err');return}
+  let r;
+  try{r=await api(SH+id+'/values:batchGet?ranges='+encodeURIComponent('Clientes!A2:E')+'&ranges='+encodeURIComponent('Historial!A2:M'))}
+  catch(e){if(!(e instanceof AuthError)){cfg.baseRepId='';saveLS(CFG_KEY,cfg)}throw e}
+  const cliInfo=new Map((r.valueRanges[0].values||[]).filter(x=>x[0]).map(x=>[norm(x[0]),x]));
+  const vistos=new Set(DB.mttos.map(m=>m.reporteUrl).filter(Boolean));
+  const filas=(r.valueRanges[1].values||[]).filter(x=>x[0]&&x[1]).map(x=>({fecha:normDate(x[0]),cliente:String(x[1]).trim(),tipo:String(x[2]||'').trim(),informe:String(x[3]||''),xls:x[4]||'',pdf:x[5]||'',marca:x[6]||'',modelo:x[7]||'',serie:x[8]||'',codigo:x[9]||'',ubic:x[10]||'',tipoM:x[11]||'',resp:x[12]||''}))
+   .filter(f=>{const u=f.pdf||f.xls;return u&&!vistos.has(u)&&/^\d{4}-\d{2}-\d{2}$/.test(f.fecha)})
+   .sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  ultimaSync=new Date();
+  if(!filas.length){if(manual)toast('Todo al día: no hay reportes nuevos');return}
+  const nuevosC=[],nuevosE=[],nuevosM=[],tocadosE=new Map();
+  const cliPorNombre=new Map(DB.clientes.map(c=>[norm(c.nombre),c]));
+  const eqPorClave=new Map(DB.equipos.map(e=>[e.clienteId+'#'+eqClave(e),e]));
+  for(const f of filas){
+   let c=cliPorNombre.get(norm(f.cliente));
+   if(!c){
+    const i=cliInfo.get(norm(f.cliente))||[],cont=String(i[3]||''),mail=/@/.test(cont);
+    c={id:uid('C'),nombre:f.cliente,nit:'',ciudad:'',direccion:'',contacto:i[2]||i[1]||'',telefono:mail?'':cont,email:mail?cont:'',notas:i[1]?'Solicitante: '+i[1]:''};
+    cliPorNombre.set(norm(f.cliente),c);nuevosC.push(c);
+   }
+   const k=c.id+'#'+eqClave({serie:f.serie,tipo:f.tipo,marca:f.marca,modelo:f.modelo});
+   let e=eqPorClave.get(k);
+   if(!e){
+    e={id:uid('E'),clienteId:c.id,tipo:f.tipo,marca:f.marca,modelo:f.modelo,serie:f.serie,inventario:f.codigo,ubicacion:f.ubic,periodicidad:String(cfg.perDef||6),ultimo:'',proximo:'',calEventId:'',estado:'Activo'};
+    eqPorClave.set(k,e);nuevosE.push(e);
+   }else{
+    if(!e.ubicacion&&f.ubic)e.ubicacion=f.ubic;
+    if(!e.inventario&&f.codigo)e.inventario=f.codigo;
+    if(!nuevosE.includes(e))tocadosE.set(e.id,e);
+   }
+   const tipoM=f.tipoM||'Preventivo',prev=/prevent/i.test(tipoM);
+   const prox=prev?addMonths(f.fecha,e.periodicidad||6):'';
+   nuevosM.push({id:uid('M'),equipoId:e.id,clienteId:c.id,fecha:f.fecha,tipo:tipoM,responsables:f.resp,descripcion:f.informe?'Informe No. '+f.informe:'Reporte de la app',reporteUrl:f.pdf||f.xls,proximo:prox});
+   if(prev&&(!e.ultimo||f.fecha>=e.ultimo)){e.ultimo=f.fecha;e.proximo=prox}
+  }
+  toast(`Guardando ${nuevosM.length} reporte(s)…`);
+  await appendRows('clientes',nuevosC);
+  await appendRows('equipos',nuevosE);
+  for(const e of tocadosE.values())await saveRow('equipos',e);
+  await appendRows('mttos',nuevosM);
+  const futuros=[...nuevosE,...tocadosE.values()].filter(e=>e.proximo&&diasHasta(e.proximo)>=0&&e.estado!=='Dado de baja');
+  if(futuros.length&&futuros.length<=15)for(const e of futuros){try{await syncEvento(e);await saveRow('equipos',e)}catch(x){if(x instanceof AuthError)throw x}}
+  saveLS('pbi_cache',DB);render();
+  toast(`Desde reportes: ${nuevosM.length} mantenimiento(s)`+(nuevosC.length?`, ${nuevosC.length} cliente(s) nuevo(s)`:'')+(nuevosE.length?`, ${nuevosE.length} equipo(s) nuevo(s)`:''));
+ }finally{syncing=false}
 }
 
 /* ================= Google Calendar ================= */
@@ -307,7 +382,7 @@ function vInicio(){
  <div class="kpi n"><b>${n(F.semana)}</b><span>Próximos 7 días</span></div>
  <div class="kpi a"><b>${n(x=>x.s.d!==null&&x.s.d>7&&x.s.d<=av)}</b><span>8 a ${av} días</span></div>
  <div class="kpi"><b>${DB.mttos.filter(m=>m.fecha.startsWith(mes)).length}</b><span>Mttos este mes</span></div></div>
- <section class="card"><div class="row"><h2 style="margin:0">Tablero de vencimientos</h2><span class="sp"></span>${sinEv?`<button class="btn sm ghost" data-a="syncCal">📅 Crear ${sinEv} evento${sinEv>1?'s':''} en Calendar</button>`:'<span class="muted" style="font-size:13px">📅 Calendar al día</span>'}</div>
+ <section class="card"><div class="row"><h2 style="margin:0">Tablero de vencimientos</h2><span class="sp"></span>${cfg.modo==='drive'?'<button class="btn sm ghost" data-a="syncRep">🔄 Traer reportes</button>':''}${sinEv?`<button class="btn sm ghost" data-a="syncCal">📅 Crear ${sinEv} evento${sinEv>1?'s':''} en Calendar</button>`:'<span class="muted" style="font-size:13px">📅 Calendar al día</span>'}</div>
  <div class="row filt" style="margin:12px 0">${fb('alerta','Requieren atención')}${fb('vencidos','Vencidos')}${fb('semana','Esta semana')}${fb('sin','Sin programar')}${fb('todos','Todos')}</div>
  <div class="list">${lista.map(x=>filaEquipo(x.e,true)).join('')||'<div class="empty">Nada en esta categoría 👍</div>'}</div></section>
  <section class="card"><h2>Últimos mantenimientos</h2><div class="list">${recientes.map(m=>filaMtto(m,true)).join('')||'<div class="empty">Aún no hay mantenimientos registrados</div>'}</div></section>`;
@@ -347,7 +422,7 @@ function vConfig(){
  ${f('clientId','Client ID de OAuth (Google Cloud)','xxxx.apps.googleusercontent.com')}
  <div class="fgrid">${f('manualesFolder','ID carpeta de Manuales en Drive','ID de la carpeta')}${f('mttoFolder','ID carpeta MANTENIMIENTOS (reportes)')}
  ${f('calendarId','Calendario para recordatorios','primary o ID de calendario compartido')}${f('aviso','Días de aviso anticipado','30','number')}
- ${f('responsables','Responsables (separados por coma)')}${f('reportUrl','URL de la app de reportes')}</div>
+ ${f('perDef','Periodicidad por defecto (meses) para equipos nuevos','6','number')}${f('responsables','Responsables (separados por coma)')}${f('reportUrl','URL de la app de reportes')}</div>
  ${f('sheetId','ID de la hoja base de datos (se crea sola si está vacío)')}
  <div class="row"><button class="btn">Guardar y conectar</button>${cfg.sheetId&&cfg.modo==='drive'?`<a class="btn ghost" href="https://docs.google.com/spreadsheets/d/${esc(cfg.sheetId)}" target="_blank" rel="noopener">Abrir hoja de datos</a>`:''}</div></form></section>
  <section class="card"><h2>Otras opciones</h2><div class="row"><button class="btn ghost" data-a="demo">Modo demo</button><button class="btn ghost" data-a="respaldo">⬇ Respaldo JSON</button>${cfg.modo?`<button class="btn dan" data-a="salir">Desconectar</button>`:''}</div></section>
@@ -411,7 +486,7 @@ async function run(fn){
  catch(e){console.error(e);if(e instanceof AuthError){token=null;render();toast('Sesión de Google expirada. Pulsa "Conectar".','err')}else toast(e.message||String(e),'err')}
  finally{setBusy(false)}
 }
-async function conectar(){await getToken();await ensureSheet();await loadAll();render();toast('Conectado a Google ✔')}
+async function conectar(){await getToken();await ensureSheet();await loadAll();render();toast('Conectado a Google ✔');await sincronizarReportes(false)}
 async function cargarCarpeta(){
  const f=S.folders.length?S.folders:(S.folders=[{id:cfg.manualesFolder,n:'Manuales'}]);
  $('#crumbs').innerHTML=f.map((x,i)=>i<f.length-1?`<a data-a="crumb" data-id="${i}">${esc(x.n)}</a> › `:`<b>${esc(x.n)}</b>`).join('');
@@ -451,7 +526,8 @@ const ACT={
  demo:()=>{cfg.modo='demo';saveLS(CFG_KEY,cfg);DB=loadLS('pbi_demo')||demoData();saveLS('pbi_demo',DB);go('inicio');toast('Modo demo activado')},
  salir:()=>{if(!confirm('¿Desconectar? Se borra la configuración de este navegador (tus datos en Drive no se tocan).'))return;if(token&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(token);token=null;sessionStorage.removeItem('pbi_tok');localStorage.removeItem('pbi_cache');cfg=Object.assign({},DEF,{clientId:cfg.clientId});saveLS(CFG_KEY,cfg);DB={clientes:[],equipos:[],mttos:[]};go('inicio')},
  reconectar:()=>run(conectar),
- refrescar:()=>{if(cfg.modo==='drive')run(async()=>{await loadAll();render();toast('Datos actualizados')});else render()},
+ refrescar:()=>{if(cfg.modo==='drive')run(async()=>{await loadAll();render();toast('Datos actualizados');await sincronizarReportes(false)});else render()},
+ syncRep:()=>run(()=>sincronizarReportes(true)),
  abrirReportes:()=>abrirReporte(null),
  respaldo:()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}));a.download=`respaldo_plataforma_${hoy()}.json`;a.click()},
  verCliente:id=>go('cliente',id),
@@ -494,8 +570,8 @@ const ACT={
 
 const SUBMIT={
  config:async fd=>{
-  const old=cfg.clientId;['clientId','manualesFolder','mttoFolder','calendarId','aviso','responsables','reportUrl','sheetId'].forEach(k=>cfg[k]=String(fd.get(k)||'').trim());
-  cfg.aviso=Number(cfg.aviso)||30;cfg.calendarId=cfg.calendarId||'primary';cfg.reportUrl=cfg.reportUrl||DEF.reportUrl;cfg.responsables=cfg.responsables||DEF.responsables;
+  const old=cfg.clientId;['clientId','manualesFolder','mttoFolder','calendarId','aviso','perDef','responsables','reportUrl','sheetId'].forEach(k=>cfg[k]=String(fd.get(k)||'').trim());
+  cfg.aviso=Number(cfg.aviso)||30;cfg.perDef=Number(cfg.perDef)||6;cfg.baseRepId='';cfg.calendarId=cfg.calendarId||'primary';cfg.reportUrl=cfg.reportUrl||DEF.reportUrl;cfg.responsables=cfg.responsables||DEF.responsables;
   if(old!==cfg.clientId)tokenClient=null;treeCache=null;
   if(!cfg.clientId){saveLS(CFG_KEY,cfg);return toast('Ajustes guardados')}
   cfg.modo='drive';saveLS(CFG_KEY,cfg);await conectar();go('inicio');
@@ -566,7 +642,7 @@ function demoData(){
 /* ================= inicio ================= */
 (async function init(){
  if(demo())DB=loadLS('pbi_demo')||demoData();
- else if(cfg.modo==='drive'){DB=loadLS('pbi_cache')||DB;if(conectado()){render();await run(async()=>{await ensureSheet();await loadAll()})}}
+ else if(cfg.modo==='drive'){DB=loadLS('pbi_cache')||DB;if(conectado()){render();await run(async()=>{await ensureSheet();await loadAll();render();await sincronizarReportes(false)})}}
  render();
 })();
 </script>
