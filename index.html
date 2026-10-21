@@ -87,7 +87,7 @@ code{background:var(--gr2);padding:1px 5px;border-radius:4px;font-size:13px}
 </head>
 <body>
 <header>
- <h1>Plataforma Biomédica<small>INTELMEDICA · Gestión de mantenimiento</small></h1>
+ <h1>Plataforma Biomédica<small>INTELMEDICA · Gestión de mantenimiento · v1.2</small></h1>
  <div id="busy"></div>
  <button class="hbtn" data-a="refrescar" title="Actualizar datos">⟳</button>
  <button class="hbtn" data-a="abrirReportes" title="App de reportes">📝 Reportes</button>
@@ -235,14 +235,18 @@ async function borrarEvento(eq){if(!eq.calEventId||demo())return;try{await api(c
 /* ================= Google Drive: búsqueda ================= */
 const FOLDER='application/vnd.google-apps.folder';
 async function driveList(q,order=true){
- const r=await api(`${DRV}?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,webViewLink,modifiedTime)&pageSize=100${order?'&orderBy=folder,name':''}${DRVX}`);
- return r.files;
+ let out=[],pt='';
+ do{
+  const r=await api(`${DRV}?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name,mimeType,webViewLink,modifiedTime,parents)&pageSize=1000${order?'&orderBy=folder,name':''}${pt?'&pageToken='+encodeURIComponent(pt):''}${DRVX}`);
+  out=out.concat(r.files||[]);pt=r.nextPageToken||'';
+ }while(pt&&out.length<5000);
+ return out;
 }
 let treeCache=null;
 async function arbolManuales(){
  if(treeCache&&treeCache.root===cfg.manualesFolder)return treeCache.ids;
  let all=[cfg.manualesFolder],nivel=[cfg.manualesFolder];
- while(nivel.length&&all.length<400){
+ while(nivel.length&&all.length<3000){
   const sig=[];
   for(let i=0;i<nivel.length;i+=30){const ch=nivel.slice(i,i+30).map(id=>`'${dq(id)}' in parents`).join(' or ');(await driveList(`mimeType='${FOLDER}' and trashed=false and (${ch})`,false)).forEach(f=>sig.push(f.id))}
   all=all.concat(sig);nivel=sig;
@@ -420,7 +424,8 @@ async function buscarManual(q){
  $('#mlist').innerHTML='<div class="empty">Buscando…</div>';
  await run(async()=>{
   const ids=await arbolManuales(),pal=q.split(/\s+/).filter(Boolean).map(w=>`name contains '${dq(w)}'`).join(' and ');
-  let res=[];for(let i=0;i<ids.length;i+=30){const ch=ids.slice(i,i+30).map(id=>`'${dq(id)}' in parents`).join(' or ');res=res.concat(await driveList(`${pal} and trashed=false and (${ch})`,false))}
+  const set=new Set(ids);
+  const res=(await driveList(`${pal} and trashed=false`,false)).filter(f=>(f.parents||[]).some(p=>set.has(p)));
   res.sort((a,b)=>((b.mimeType===FOLDER)-(a.mimeType===FOLDER))||a.name.localeCompare(b.name));
   $('#mlist').innerHTML=res.map(x=>itemArchivo(x)).join('')||'<div class="empty">Sin resultados. Prueba solo con el modelo.</div>';
  });
