@@ -115,6 +115,7 @@ code{background:var(--gr2);padding:1px 5px;border-radius:4px;font-size:13px}
  <span class="sp"></span>
  <div id="busy"></div>
  <button class="hbtn" data-a="refrescar" title="Actualizar datos">⟳</button>
+ <button class="hbtn" id="btnInstalar" data-a="instalar" style="display:none" title="Instalar la plataforma como app">⬇ Instalar</button>
  <button class="hbtn" data-a="abrirReportes" title="App de reportes">📝 Reportes</button>
 </header>
 <div class="stripe"></div>
@@ -177,24 +178,15 @@ const eqNombre=e=>e?[e.tipo,e.marca,e.modelo].filter(Boolean).join(' · '):'(equ
 const SCOPES='https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar.events';
 class AuthError extends Error{constructor(){super('La sesión de Google expiró')}}
 let token=null,tokenExp=0,tokenClient=null,pend=null;
-try{const t=JSON.parse(localStorage.getItem('pbi_tok'));if(t&&t.tokenExp>Date.now()){token=t.token;tokenExp=t.tokenExp}}catch(e){}
+try{const t=JSON.parse(sessionStorage.getItem('pbi_tok'));if(t&&t.tokenExp>Date.now()){token=t.token;tokenExp=t.tokenExp}}catch(e){}
 const conectado=()=>!!token&&Date.now()<tokenExp;
-const enLinea=()=>navigator.onLine!==false;
-const esRed=e=>e instanceof TypeError&&/fetch|network|load failed|red/i.test(e.message||'')||!enLinea();
-let gsiCargando=null;
-function cargarGsi(){
- if(window.google?.accounts?.oauth2)return Promise.resolve();
- if(gsiCargando)return gsiCargando;
- return gsiCargando=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=()=>{gsiCargando=null;res()};s.onerror=()=>{gsiCargando=null;s.remove();rej(new Error('Sin conexión'))};document.head.appendChild(s)});
-}
 function getToken(){
  return new Promise((res,rej)=>{
-  if(!enLinea())return rej(new Error('Sin conexión a internet. Tus cambios quedan guardados y se subirán al conectarte.'));
-  if(!window.google?.accounts?.oauth2){cargarGsi().catch(()=>{});return rej(new Error('Cargando el inicio de sesión de Google… intenta de nuevo en unos segundos.'))}
+  if(!window.google?.accounts?.oauth2)return rej(new Error('No cargó el inicio de sesión de Google. Revisa tu conexión.'));
   if(!cfg.clientId)return rej(new Error('Falta el Client ID de Google en Ajustes.'));
   if(!tokenClient)tokenClient=google.accounts.oauth2.initTokenClient({client_id:cfg.clientId,scope:SCOPES,callback:r=>{
    if(r.error){pend?.rej(new Error('Google: '+r.error))}
-   else{token=r.access_token;tokenExp=Date.now()+(r.expires_in-60)*1000;saveLS('pbi_tok',{token,tokenExp});pend?.res(token)}
+   else{token=r.access_token;tokenExp=Date.now()+(r.expires_in-60)*1000;sessionStorage.setItem('pbi_tok',JSON.stringify({token,tokenExp}));pend?.res(token)}
    pend=null}});
   pend={res,rej};tokenClient.requestAccessToken();
  });
@@ -233,100 +225,24 @@ async function loadAll(){
  if(demo()){DB=loadLS('pbi_demo')||demoData();return}
  const K=Object.keys(SCHEMA);
  const r=await api(SH+cfg.sheetId+'/values:batchGet?'+K.map(k=>'ranges='+encodeURIComponent(SCHEMA[k].sheet+'!A2:Z')).join('&'));
- const nuevo={};
- K.forEach((k,i)=>{const cols=SCHEMA[k].cols;nuevo[k]=(r.valueRanges[i].values||[]).filter(row=>row[0]).map(row=>Object.fromEntries(cols.map((c,j)=>[c,DATECOLS.includes(c)?normDate(row[j]):String(row[j]??'')])))});
- // Lo que aún no se ha subido manda sobre lo que trae Drive, para no perder trabajo hecho sin conexión
- for(const op of cola()){
-  if(op.op==='save'){const o=DB[op.kind]?.find(x=>x.id===op.id);if(o){const L=nuevo[op.kind],i=L.findIndex(x=>x.id===op.id);i>=0?L[i]=o:L.push(o)}}
-  else if(op.op==='del')nuevo[op.kind]=nuevo[op.kind].filter(x=>x.id!==op.id);
- }
- DB=nuevo;
+ K.forEach((k,i)=>{const cols=SCHEMA[k].cols;DB[k]=(r.valueRanges[i].values||[]).filter(row=>row[0]).map(row=>Object.fromEntries(cols.map((c,j)=>[c,DATECOLS.includes(c)?normDate(row[j]):String(row[j]??'')])))});
  saveLS('pbi_cache',DB);
 }
 async function filaDe(kind,id){const ids=await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(SCHEMA[kind].sheet+'!A:A'));return(ids.values||[]).findIndex(r=>r[0]===id)}
-async function escribirFila(kind,obj){
- const s=SCHEMA[kind],row=s.cols.map(c=>obj[c]??'');
- const idx=await filaDe(kind,obj.id);
- if(idx>=1)await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(s.sheet+'!A'+(idx+1))+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[row]})});
- else await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(s.sheet+'!A1')+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:[row]})});
-}
-async function borrarFila(kind,id){
- const idx=await filaDe(kind,id);
- if(idx>=1)await api(SH+cfg.sheetId+':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:sheetIds[SCHEMA[kind].sheet],dimension:'ROWS',startIndex:idx,endIndex:idx+1}}}]})});
-}
-const persistir=()=>demo()?saveLS('pbi_demo',DB):saveLS('pbi_cache',DB);
 async function saveRow(kind,obj){
+ if(!demo()){
+  const s=SCHEMA[kind],row=s.cols.map(c=>obj[c]??'');
+  const idx=await filaDe(kind,obj.id);
+  if(idx>=1)await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(s.sheet+'!A'+(idx+1))+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[row]})});
+  else await api(SH+cfg.sheetId+'/values/'+encodeURIComponent(s.sheet+'!A1')+':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS',{method:'POST',body:JSON.stringify({values:[row]})});
+ }
  const L=DB[kind],i=L.findIndex(x=>x.id===obj.id);if(i>=0)L[i]=obj;else L.push(obj);
- persistir();
- if(!demo()){encolar({op:'save',kind,id:obj.id});sincronizar()}
+ demo()?saveLS('pbi_demo',DB):saveLS('pbi_cache',DB);
 }
 async function deleteRow(kind,id){
+ if(!demo()){const idx=await filaDe(kind,id);if(idx>=1)await api(SH+cfg.sheetId+':batchUpdate',{method:'POST',body:JSON.stringify({requests:[{deleteDimension:{range:{sheetId:sheetIds[SCHEMA[kind].sheet],dimension:'ROWS',startIndex:idx,endIndex:idx+1}}}]})})}
  DB[kind]=DB[kind].filter(x=>x.id!==id);
- persistir();
- if(!demo()){encolar({op:'del',kind,id});sincronizar()}
-}
-
-/* ================= trabajo sin conexión: cola de cambios ================= */
-// Cada cambio se guarda primero en este equipo y se apunta en la cola; se sube a Drive/Calendar cuando hay red y sesión.
-const COLA_KEY='pbi_cola';
-const cola=()=>loadLS(COLA_KEY)||[];
-const guardarCola=q=>saveLS(COLA_KEY,q);
-function encolar(op){
- op.qid=uid('Q');
- const fila=op.op==='save'||op.op==='del';
- // Basta con el último cambio de cada registro: si se edita tres veces sin red, sube una sola vez
- const q=cola().filter(x=>fila?!((x.op==='save'||x.op==='del')&&x.kind===op.kind&&x.id===op.id):!(x.op===op.op&&x.id===op.id&&x.ev===op.ev));
- q.push(op);guardarCola(q);pintarBanner();
-}
-const quitarDeCola=qid=>guardarCola(cola().filter(x=>x.qid!==qid));
-function calProgramar(e){if(demo())return syncEvento(e).then(persistir);encolar({op:'cal',id:e.id})}
-function calBorrar(ev){if(ev&&!demo())encolar({op:'calDel',id:'',ev})}
-async function ejecutar(op){
- if(op.op==='save'){const o=DB[op.kind]?.find(x=>x.id===op.id);if(o)await escribirFila(op.kind,o)}
- else if(op.op==='del')await borrarFila(op.kind,op.id);
- else if(op.op==='cal'){
-  const e=equipo(op.id);
-  if(!e||!e.proximo||e.estado==='Dado de baja')return;
-  await syncEvento(e);persistir();await escribirFila('equipos',e);
- }
- else if(op.op==='calDel'){try{await api(calBase()+'/'+encodeURIComponent(op.ev),{method:'DELETE'})}catch(e){if(e instanceof AuthError||esRed(e))throw e}}
-}
-async function vaciarCola(){
- if(!cola().length)return;
- if(!(SCHEMA.clientes.sheet in sheetIds))await ensureSheet();
- let q,hechos=0;
- while((q=cola()).length){
-  const op=q[0];
-  try{await ejecutar(op)}
-  catch(e){
-   if(e instanceof AuthError||esRed(e))throw e;
-   op.intentos=(op.intentos||0)+1;
-   if(op.intentos>=3){quitarDeCola(op.qid);toast('Google rechazó un cambio y se descartó: '+(e.message||e),'err');continue}
-   guardarCola(cola().map(x=>x.qid===op.qid?op:x));throw e;
-  }
-  quitarDeCola(op.qid);hechos++;
- }
- if(hechos)toast(`☁️ ${hechos} cambio${hechos>1?'s':''} sincronizado${hechos>1?'s':''} con Drive`);
-}
-let subiendo=false,otraVez=false;
-async function sincronizar(){
- if(demo()||cfg.modo!=='drive')return;
- if(subiendo){otraVez=true;return}
- if(!enLinea()||!conectado()||!cola().length)return pintarBanner();
- subiendo=true;pintarBanner();
- try{do{otraVez=false;await vaciarCola()}while(otraVez&&cola().length)}
- catch(e){
-  if(e instanceof AuthError)token=null;
-  else if(!esRed(e))toast('No se pudo sincronizar: '+(e.message||e),'err');
- }
- finally{subiendo=false;pintarBanner()}
-}
-// Sube lo pendiente y luego trae lo que haya cambiado en Drive (por ejemplo, lo que registró otro usuario)
-async function sincronizarTodo(){
- if(cfg.modo!=='drive'||!enLinea()||!conectado())return pintarBanner();
- await sincronizar();
- await loadAll();render();
- await sincronizarReportes(false);
+ demo()?saveLS('pbi_demo',DB):saveLS('pbi_cache',DB);
 }
 
 
@@ -351,7 +267,7 @@ async function appendRows(kind,objs){
  DB[kind].push(...objs);
 }
 async function sincronizarReportes(manual){
- if(cfg.modo!=='drive'||!conectado()||!enLinea()||syncing)return;
+ if(cfg.modo!=='drive'||!conectado()||syncing)return;
  syncing=true;
  try{
   const id=await baseReportesId();
@@ -397,8 +313,8 @@ async function sincronizarReportes(manual){
   for(const e of tocadosE.values())await saveRow('equipos',e);
   await appendRows('mttos',nuevosM);
   const futuros=[...nuevosE,...tocadosE.values()].filter(e=>e.proximo&&diasHasta(e.proximo)>=0&&e.estado!=='Dado de baja');
-  if(futuros.length&&futuros.length<=15)futuros.forEach(calProgramar);
-  saveLS('pbi_cache',DB);render();sincronizar();
+  if(futuros.length&&futuros.length<=15)for(const e of futuros){try{await syncEvento(e);await saveRow('equipos',e)}catch(x){if(x instanceof AuthError)throw x}}
+  saveLS('pbi_cache',DB);render();
   toast(`Desde reportes: ${nuevosM.length} mantenimiento(s)`+(nuevosC.length?`, ${nuevosC.length} cliente(s) nuevo(s)`:'')+(nuevosE.length?`, ${nuevosE.length} equipo(s) nuevo(s)`:''));
  }finally{syncing=false}
 }
@@ -417,6 +333,7 @@ async function syncEvento(eq){
  if(eq.calEventId){try{await api(calBase()+'/'+encodeURIComponent(eq.calEventId),{method:'PATCH',body:JSON.stringify(body)});return}catch(e){if(e instanceof AuthError)throw e}}
  const ev=await api(calBase(),{method:'POST',body:JSON.stringify(body)});eq.calEventId=ev.id;
 }
+async function borrarEvento(eq){if(!eq.calEventId||demo())return;try{await api(calBase()+'/'+encodeURIComponent(eq.calEventId),{method:'DELETE'})}catch(e){if(e instanceof AuthError)throw e}}
 
 /* ================= Google Drive: búsqueda ================= */
 const FOLDER='application/vnd.google-apps.folder';
@@ -461,18 +378,12 @@ function render(){
  const nv=S.view==='cliente'?'clientes':S.view;
  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.id===nv));
  const V={inicio:vInicio,clientes:vClientes,cliente:vCliente,manuales:vManuales,config:vConfig}[S.view]||vInicio;
- $('#app').innerHTML='<div id="bnr"></div>'+V();
- pintarBanner();
- if(S.view==='manuales'&&cfg.modo==='drive'&&cfg.manualesFolder&&conectado()&&enLinea()){if(S.mqPend){const q=S.mqPend;S.mqPend='';$('#mq').value=q;buscarManual(q)}else cargarCarpeta()}
+ $('#app').innerHTML=banner()+V();
+ if(S.view==='manuales'&&cfg.modo==='drive'&&cfg.manualesFolder&&conectado()){if(S.mqPend){const q=S.mqPend;S.mqPend='';$('#mq').value=q;buscarManual(q)}else cargarCarpeta()}
 }
-function pintarBanner(){const b=$('#bnr');if(b)b.innerHTML=banner()}
 function banner(){
  if(demo())return`<div class="banner i">🧪 Modo demo: datos de prueba guardados solo en este navegador. <span class="sp"></span><button class="btn sm ghost" data-a="go" data-id="config">Conectar Google</button></div>`;
- if(cfg.modo!=='drive')return'';
- const n=cola().length,pend=n?` · <b>${n} cambio${n>1?'s':''} por subir</b>`:'';
- if(!enLinea())return`<div class="banner w">📴 Sin conexión: trabajas con la copia guardada en este equipo${pend}. Se sincroniza con Drive al volver la conexión.</div>`;
- if(!conectado())return`<div class="banner w">⚠️ ${n?`Tienes <b>${n} cambio${n>1?'s':''} sin subir</b>. Inicia sesión en Google para sincronizar.`:'Sin sesión de Google: ves la última copia guardada.'} <span class="sp"></span><button class="btn sm" data-a="reconectar">${n?'Sincronizar':'Conectar'}</button></div>`;
- if(n)return`<div class="banner i">🔄 ${subiendo?'Subiendo':'Pendientes'} ${n} cambio${n>1?'s':''} a Drive… <span class="sp"></span>${subiendo?'':'<button class="btn sm ghost" data-a="syncAhora">Reintentar</button>'}</div>`;
+ if(cfg.modo==='drive'&&!conectado())return`<div class="banner w">⚠️ Sin sesión de Google. Ves la última copia guardada; para editar o sincronizar, conéctate. <span class="sp"></span><button class="btn sm" data-a="reconectar">Conectar</button></div>`;
  return'';
 }
 
@@ -530,7 +441,6 @@ function vCliente(){
 function vManuales(){
  if(cfg.modo!=='drive')return`<section class="card"><h2>Manuales de servicio</h2><p class="muted">Disponible al conectar Google Drive.</p></section>`;
  if(!cfg.manualesFolder)return`<section class="card"><h2>Manuales de servicio</h2><p>Indica en Ajustes el ID de la carpeta de Drive donde guardas los manuales.</p><button class="btn" data-a="go" data-id="config">Ir a Ajustes</button></section>`;
- if(!enLinea())return`<section class="card"><h2>Manuales de servicio</h2><p class="muted">Los manuales están en Drive y necesitan conexión. Para tenerlos donde el cliente, márcalos en Google Drive como "Disponible sin conexión".</p></section>`;
  if(!conectado())return'';
  return`<section class="card"><div class="row"><input id="mq" placeholder="Buscar por marca, modelo o equipo…" style="flex:1;min-width:200px"><button class="btn" data-a="buscarManual">Buscar</button></div><div class="crumbs" id="crumbs"></div><div class="list" id="mlist"><div class="empty">Cargando…</div></div></section>`;
 }
@@ -601,14 +511,14 @@ function prevProx(){
 async function run(fn){
  setBusy(true);
  try{return await fn()}
- catch(e){console.error(e);if(e instanceof AuthError){token=null;render();toast('Sesión de Google expirada. Pulsa "Conectar".','err')}else if(esRed(e)){pintarBanner();toast('Sin conexión a internet. Esta acción necesita red.','err')}else toast(e.message||String(e),'err')}
+ catch(e){console.error(e);if(e instanceof AuthError){token=null;render();toast('Sesión de Google expirada. Pulsa "Conectar".','err')}else toast(e.message||String(e),'err')}
  finally{setBusy(false)}
 }
 async function buscarCarpetaManuales(){
  if(cfg.manualesFolder)return;
  try{const f=await driveList(`name='MANUALES y GUIAS' and mimeType='${FOLDER}' and trashed=false`,false);if(f.length){cfg.manualesFolder=f[0].id;saveLS(CFG_KEY,cfg)}}catch(e){if(e instanceof AuthError)throw e}
 }
-async function conectar(){await getToken();await ensureSheet();await sincronizar();await loadAll();await buscarCarpetaManuales();render();toast('Conectado a Google ✔');await sincronizarReportes(false)}
+async function conectar(){await getToken();await ensureSheet();await loadAll();await buscarCarpetaManuales();render();toast('Conectado a Google ✔');await sincronizarReportes(false)}
 async function cargarCarpeta(){
  const f=S.folders.length?S.folders:(S.folders=[{id:cfg.manualesFolder,n:'Manuales'}]);
  $('#crumbs').innerHTML=f.map((x,i)=>i<f.length-1?`<a data-a="crumb" data-id="${i}">${esc(x.n)}</a> › `:`<b>${esc(x.n)}</b>`).join('');
@@ -645,12 +555,15 @@ const ACT={
  go:id=>{if(id==='manuales')S.folders=[];go(id)},
  filtro:id=>{S.filtro=id;render()},
  cerrar,
+ instalar:()=>{
+  if(window._instPrompt){window._instPrompt.prompt();window._instPrompt.userChoice.then(()=>{window._instPrompt=null;$('#btnInstalar').style.display='none'});return}
+  modal('Instalar la plataforma',`<p>En el <b>iPhone o iPad</b> (Safari):</p><ol><li>Toque el botón <b>Compartir</b> (cuadrado con flecha hacia arriba).</li><li>Elija <b>Agregar a pantalla de inicio</b>.</li><li>Toque <b>Agregar</b>.</li></ol><p class="muted">La app queda con el ícono de INTELMEDICA y abre en pantalla completa. Al abrirla por primera vez, toque <b>Conectar con Google</b>.</p>`);
+ },
  conectarYa:()=>{cfg.modo='drive';saveLS(CFG_KEY,cfg);run(async()=>{await conectar();go('inicio')})},
  demo:()=>{cfg.modo='demo';saveLS(CFG_KEY,cfg);DB=loadLS('pbi_demo')||demoData();saveLS('pbi_demo',DB);go('inicio');toast('Modo demo activado')},
- salir:()=>{const n=cola().length;if(!confirm((n?`⚠️ Hay ${n} cambio(s) sin subir a Drive que se perderán.\n\n`:'')+'¿Desconectar? Se borra la configuración de este navegador (tus datos en Drive no se tocan).'))return;if(token&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(token);token=null;localStorage.removeItem('pbi_tok');localStorage.removeItem('pbi_cache');localStorage.removeItem(COLA_KEY);cfg=Object.assign({},DEF,{clientId:cfg.clientId});saveLS(CFG_KEY,cfg);DB={clientes:[],equipos:[],mttos:[]};go('inicio')},
+ salir:()=>{if(!confirm('¿Desconectar? Se borra la configuración de este navegador (tus datos en Drive no se tocan).'))return;if(token&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(token);token=null;sessionStorage.removeItem('pbi_tok');localStorage.removeItem('pbi_cache');cfg=Object.assign({},DEF,{clientId:cfg.clientId});saveLS(CFG_KEY,cfg);DB={clientes:[],equipos:[],mttos:[]};go('inicio')},
  reconectar:()=>run(conectar),
- refrescar:()=>{if(cfg.modo!=='drive')return render();if(!enLinea())return toast('Sin conexión: se actualizará al volver la red','err');if(!conectado())return run(conectar);run(async()=>{await sincronizarTodo();toast('Datos actualizados')})},
- syncAhora:()=>sincronizar(),
+ refrescar:()=>{if(cfg.modo==='drive')run(async()=>{await loadAll();render();toast('Datos actualizados');await sincronizarReportes(false)});else render()},
  syncRep:()=>run(()=>sincronizarReportes(true)),
  abrirReportes:()=>abrirReporte(null),
  respaldo:()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(DB,null,1)],{type:'application/json'}));a.download=`respaldo_plataforma_${hoy()}.json`;a.click()},
@@ -667,7 +580,7 @@ const ACT={
   <div id="repsBox" class="list"></div><h3 style="margin-top:12px">Historial (${ms.length})</h3><div class="list">${ms.map(m=>filaMtto(m,false)).join('')||'<div class="empty">Sin registros</div>'}</div>`);
  },
  editEquipo:id=>formEquipo(equipo(id)),
- delEquipo:id=>{const e=equipo(id);if(!confirm('¿Eliminar este equipo? Su historial de mantenimientos se conserva.'))return;run(async()=>{calBorrar(e.calEventId);await deleteRow('equipos',id);cerrar();render();toast('Equipo eliminado')})},
+ delEquipo:id=>{const e=equipo(id);if(!confirm('¿Eliminar este equipo? Su historial de mantenimientos se conserva.'))return;run(async()=>{await borrarEvento(e);await deleteRow('equipos',id);cerrar();render();toast('Equipo eliminado')})},
  nuevoMtto:id=>{const e=equipo(id);formMtto({equipoId:id,clienteId:e.clienteId})},
  editMtto:id=>formMtto(DB.mttos.find(m=>m.id===id)),
  delMtto:id=>{if(confirm('¿Eliminar este registro de mantenimiento?'))run(async()=>{await deleteRow('mttos',id);cerrar();render();toast('Registro eliminado')})},
@@ -680,11 +593,9 @@ const ACT={
  crumb:i=>{S.folders=S.folders.slice(0,Number(i)+1);const q=$('#mq');if(q)q.value='';cargarCarpeta()},
  buscarManual:()=>buscarManual($('#mq').value),
  syncCal:()=>run(async()=>{
-  const L=DB.equipos.filter(e=>e.estado!=='Dado de baja'&&e.proximo&&!e.calEventId&&diasHasta(e.proximo)>=0);
-  if(demo()){for(const e of L){const x={...e};await syncEvento(x);await saveRow('equipos',x)}render();return toast(`${L.length} recordatorio(s) creados ✔`)}
-  L.forEach(calProgramar);
-  toast(enLinea()&&conectado()?`Creando ${L.length} evento(s) en Calendar…`:`${L.length} evento(s) se crearán en Calendar al conectarte`);
-  await sincronizar();render();
+  const L=DB.equipos.filter(e=>e.estado!=='Dado de baja'&&e.proximo&&!e.calEventId&&diasHasta(e.proximo)>=0);let n=0;
+  for(const e of L){const x={...e};await syncEvento(x);await saveRow('equipos',x);n++;toast(`Creando eventos… ${n}/${L.length}`)}
+  render();toast(`${n} recordatorio${n!==1?'s':''} creado${n!==1?'s':''} en Calendar ✔`);
  }),
  csv:id=>{
   const c=cliente(id),ms=DB.mttos.filter(m=>m.clienteId===id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
@@ -710,10 +621,9 @@ const SUBMIT={
   const prev=equipo(fd.get('id'))||{};
   const o={...prev,...Object.fromEntries(SCHEMA.equipos.cols.filter(c=>c!=='calEventId').map(c=>[c,String(fd.get(c)||'').trim()]))};o.id=o.id||uid('E');o.calEventId=prev.calEventId||'';
   if(!o.proximo&&o.ultimo)o.proximo=addMonths(o.ultimo,o.periodicidad);
-  if(o.estado==='Dado de baja'&&o.calEventId){calBorrar(o.calEventId);o.calEventId=''}
-  await saveRow('equipos',o);
-  if(o.estado!=='Dado de baja'&&fd.get('cal')&&o.proximo){await calProgramar(o);sincronizar()}
-  cerrar();render();toast(enLinea()||demo()?'Equipo guardado':'Equipo guardado en este equipo · se subirá al conectarte');
+  if(o.estado==='Dado de baja'&&o.calEventId){await borrarEvento(o);o.calEventId=''}
+  else if(fd.get('cal')&&o.proximo)await syncEvento(o);
+  await saveRow('equipos',o);cerrar();render();toast('Equipo guardado');
  },
  mtto:async fd=>{
   const prev=DB.mttos.find(m=>m.id===fd.get('id'))||{};
@@ -722,10 +632,10 @@ const SUBMIT={
   if(!prev.id&&fd.get('act')&&e){
    const x={...e};o.proximo=addMonths(o.fecha,x.periodicidad||6);
    if(!x.ultimo||o.fecha>=x.ultimo){x.ultimo=o.fecha;x.proximo=o.proximo}
+   if(fd.get('cal'))await syncEvento(x);
    await saveRow('equipos',x);
-   if(fd.get('cal'))await calProgramar(x);
   }
-  await saveRow('mttos',o);cerrar();render();toast(enLinea()||demo()?'Mantenimiento registrado ✔':'Mantenimiento guardado en este equipo · se subirá al conectarte ✔');
+  await saveRow('mttos',o);cerrar();render();toast('Mantenimiento registrado ✔');
  }
 };
 
@@ -769,27 +679,23 @@ function demoData(){
 /* ================= inicio ================= */
 (async function init(){
  if(demo())DB=loadLS('pbi_demo')||demoData();
- else if(cfg.modo==='drive'){DB=loadLS('pbi_cache')||DB;if(conectado()&&enLinea()){render();await run(async()=>{await ensureSheet();await sincronizarTodo()})}}
+ else if(cfg.modo==='drive'){DB=loadLS('pbi_cache')||DB;if(conectado()){render();await run(async()=>{await ensureSheet();await loadAll();render();await sincronizarReportes(false)})}}
  render();
 })();
-
-/* ================= sincronización automática ================= */
-// Al volver la red (p. ej. al llegar a la empresa) sube lo pendiente sin que haya que tocar nada
-let autoEnCurso=false;
-async function autoSync(){
- if(autoEnCurso||cfg.modo!=='drive'||!enLinea())return pintarBanner();
- cargarGsi().catch(()=>{});
- if(!conectado())return pintarBanner();
- autoEnCurso=true;
- try{if(!(SCHEMA.clientes.sheet in sheetIds))await ensureSheet();await sincronizarTodo()}
- catch(e){if(e instanceof AuthError){token=null;pintarBanner()}}
- finally{autoEnCurso=false}
-}
-addEventListener('online',()=>{toast('📶 Conexión recuperada');autoSync()});
-addEventListener('offline',()=>{pintarBanner();toast('📴 Sin conexión: puedes seguir trabajando')});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&cola().length)sincronizar()});
-setInterval(()=>{if(cola().length)sincronizar();else pintarBanner()},60000);
-if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW',e)));
+</script>
+<script>
+/* ===== instalación como app (PWA) ===== */
+(function(){
+ const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const btn=document.getElementById('btnInstalar');
+ if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+ const h=location.hash.slice(1);if(['clientes','manuales','ajustes'].includes(h))setTimeout(()=>{try{ACT.go(h)}catch(x){}},50);
+ if(standalone)return;
+ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();window._instPrompt=e;btn.style.display=''});
+ window.addEventListener('appinstalled',()=>{btn.style.display='none';try{toast('Plataforma instalada ✔')}catch(x){}});
+ if(ios)btn.style.display='';
+})();
 </script>
 </body>
 </html>
