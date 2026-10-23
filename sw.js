@@ -1,7 +1,7 @@
 // Plataforma Biomédica · Intelmedica — service worker
 // Red primero: siempre trae la versión más reciente; si no hay internet, usa la copia guardada.
-const CACHE = 'plataforma-biomedica-v20';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const CACHE = 'plataforma-biomedica-v22';
+const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './firma-ramiro.jpg', './firma-evelyn.jpg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
