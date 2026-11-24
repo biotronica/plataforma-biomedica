@@ -1,7 +1,7 @@
-// PLATAFORMA BIOMÉDICA · INTELMEDICA — service worker (v2.30)
+// PLATAFORMA BIOMÉDICA · INTELMEDICA — service worker (v2.31)
 // Este archivo va SOLO en github.com/biotronica/plataforma-biomedica
 // Red primero: siempre trae la versión más reciente; si no hay internet, usa la copia guardada.
-const CACHE = 'plataforma-biomedica-v230';
+const CACHE = 'plataforma-biomedica-v231';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './firma-ramiro.jpg', './firma-evelyn.jpg'];
 
 self.addEventListener('install', e => {
